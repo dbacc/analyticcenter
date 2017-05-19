@@ -28,6 +28,7 @@ class LTI(object):
         self.n = A.shape[0]
         self.m = B.shape[1]
         self.p = C.shape[0]
+        self.logger = logging.getLogger(__name__)
 
 
 class OptimalControlSystem(LTI):
@@ -38,6 +39,18 @@ class OptimalControlSystem(LTI):
         self.Q = Q
         self.S = S
         self.R = R
+        self.__initH0()
+        self._check_positivity_weight_matrix()
+
+    def __initH0(self):
+        self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
+
+    def _check_positivity_weight_matrix(self):
+        try:
+            linalg.cholesky(self.H0)
+            self.logger.info('Positive definite')
+        except linalg.LinAlgError as err:
+            self.logger.info('Not positive definite')
 
 
 class AnalyticCenter(object):
@@ -45,7 +58,7 @@ class AnalyticCenter(object):
 
     def __init__(self, system, tol):
         self.system = system
-        self.H = None
+        self.H0 = None
         self.H = None
         self.tol = tol
         self.__init_H0()
