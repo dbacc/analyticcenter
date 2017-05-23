@@ -1,0 +1,5 @@
+.nfs
+__pychache__
+.nfs*
+__pychache__*
+__pycache*
