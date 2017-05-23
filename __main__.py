@@ -91,7 +91,7 @@ class AnalyticCenter(object):
 
     def _get_F_and_P(self, X):
         F = linalg.solve(self.system.R, self.system.S.H - self.system.B.H @ X)
-        P = self.system.Q + self.system.A.T @ X + X @ self.system.A - F.T @ self.system.R @ F
+        P = self.riccati_operator(X)
         return F, P
 
     def steepest_ascent(self):
@@ -160,13 +160,14 @@ class AnalyticCenter(object):
         c = ProjectedMatrix[1, 0]
         ab = ProjectedMatrix[0, 0] * ProjectedMatrix[1, 1]
         stepsize = c / (-ab + c ** 2)
+        stepsize = c / (-ab + c ** 2)
         ipdb.set_trace()
         self.logger.debug("Chosen stepsize: {}".format(stepsize))
         return stepsize
 
     def riccati_operator(self, X):
-        RF = self.system.B.T @ X + self.system.S.T
-        Ricc = self.system.Q + self.system.A.T @ X + X @ self.system.A - RF.T @ linalg.solve(self.system.R, RF)
+        RF = - self.system.B.T @ X + self.system.S.T
+        Ricc = self.system.Q - self.system.A.T @ X - X @ self.system.A - RF.T @ linalg.solve(self.system.R, RF)
         return Ricc
 
     def det_direction_plot(self, X, Delta_X):
