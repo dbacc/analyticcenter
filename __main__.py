@@ -66,7 +66,7 @@ class AnalyticCenter(object):
         self.H0 = None
         self.H = None
         self.tol = tol
-        self.maxiter = 4
+        self.maxiter = 100
         self.__init_H0()
         self.debug = True
         self.logger = logging.getLogger(__name__)
@@ -121,8 +121,8 @@ class AnalyticCenter(object):
             determinant = linalg.det(P) * determinant_R
 
     def get_residual(self, X, P, F, A_F):
-        res1 = self.system.B.T @ X + self.system.S.T - self.system.R @ F
-        res2 = self.system.Q + self.system.A.T @ X + X @ self.system.A - F.T @ self.system.R @ F - P
+        res1 = -self.system.B.T @ X + self.system.S.T - self.system.R @ F
+        res2 = self.system.Q - self.system.A.T @ X - X @ self.system.A - F.T @ self.system.R @ F - P
         res3 = P @ A_F
         res3 = res3 + res3.T
         self.logger.debug("\nres1:\n{},\nres2: {},\nres3: {}".format(res1, res2, res3))
@@ -142,8 +142,8 @@ class AnalyticCenter(object):
         self.logger.debug(
             "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue, largest_eigenvector, linalg.norm(largest_eigenvector)))
         Delta_X = T @ Delta_T @ T
-        if self.debug:
-            self.det_direction_plot(X, Delta_X)
+        # if self.debug:
+        #     self.det_direction_plot(X, Delta_X)
         stepsize = self._get_ascent_step_size(X, T @ largest_eigenvector)
         return stepsize * Delta_X
 
@@ -161,7 +161,7 @@ class AnalyticCenter(object):
         ab = ProjectedMatrix[0, 0] * ProjectedMatrix[1, 1]
         stepsize = c / (-ab + c ** 2)
         stepsize = c / (-ab + c ** 2)
-        ipdb.set_trace()
+        # ipdb.set_trace()
         self.logger.debug("Chosen stepsize: {}".format(stepsize))
         return stepsize
 
@@ -173,10 +173,11 @@ class AnalyticCenter(object):
     def det_direction_plot(self, X, Delta_X):
         self.logger.debug("Creating det direction plot...")
         alpha = np.linspace(-1., 1., 2000)
-        det_alpha = [linalg.det(self.riccati_operator(X + val * X)) for val in alpha]
+        det_alpha = [linalg.det(self.riccati_operator(X + val * Delta_X)) for val in alpha]
+        # ipdb.set_trace()
         plt.plot(alpha, det_alpha)
         self.logger.debug("Maximum reached at alpha = {}".format(alpha[np.argmax(det_alpha)]))
-        plt.show()
+        # plt.show()
 
 
 if __name__ == "__main__":
