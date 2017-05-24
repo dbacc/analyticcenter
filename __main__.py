@@ -74,12 +74,15 @@ class AnalyticCenter(object):
     def __init_H0(self):
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.transpose(), self.system.R]])
 
-    def build_H_matrix(self, X: np.matrix):
+    def _get_H_matrix(self, X: np.matrix):
         A = self.system.A
         B = self.system.B
         H = self.H0 - np.bmat([[A.T @ X + X @ A, X @ B],
                                [B.T @ X, np.zeros((self.system.m, self.system.m))]])
         return H
+
+    def _get_Delta_H(self, Delta_X):
+        return self._get_H_matrix(Delta_X) - self.H0
 
     def _get_initial_X(self):
         self.logger.info('Computing initial X')
@@ -87,7 +90,7 @@ class AnalyticCenter(object):
         Am = -self.system.A
         Bm = -self.system.B
         X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
-        return -0.5 * (X_minus + X_plus) # We use negative definite notion of solutions for Riccati equation
+        return -0.5 * (X_minus + X_plus)  # We use negative definite notion of solutions for Riccati equation
 
     def _get_F_and_P(self, X):
         F = linalg.solve(self.system.R, self.system.S.H - self.system.B.H @ X)
@@ -119,6 +122,7 @@ class AnalyticCenter(object):
             A_F = (self.system.A - self.system.B @ F)
             residual = self.get_residual(X, P, F, A_F)
             determinant = linalg.det(P) * determinant_R
+            ipdb.set_trace()
 
     def get_residual(self, X, P, F, A_F):
         res1 = -self.system.B.T @ X + self.system.S.T - self.system.R @ F
@@ -136,11 +140,14 @@ class AnalyticCenter(object):
         A_T_symmetric = A_T + np.asmatrix(A_T).H
         self.logger.debug("Symmetric part of A_T:\n{}".format(A_T_symmetric))
         largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(self.system.n - 1, self.system.n - 1))
+        # largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(0, 0))
         largest_eigenvector = largest_eigenpair[1]
         largest_eigenvalue = largest_eigenpair[0]
         Delta_T = largest_eigenvector @ np.asmatrix(largest_eigenvector).H
         self.logger.debug(
-            "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue, largest_eigenvector, linalg.norm(largest_eigenvector)))
+            "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue,
+                                                                                       largest_eigenvector, linalg.norm(
+                    largest_eigenvector)))
         Delta_X = T @ Delta_T @ T
         # if self.debug:
         #     self.det_direction_plot(X, Delta_X)
@@ -149,7 +156,7 @@ class AnalyticCenter(object):
 
     def _get_ascent_step_size(self, X, eigenvector):
         # perm = np.matrix([[0, 1], [1, 0]])
-        H = self.build_H_matrix(X)
+        H = self._get_H_matrix(X)
         eigenvector = np.asmatrix(eigenvector)  # / linalg.norm(eigenvector)
         self.logger.debug("H(X): {}".format(H))
         ProjectionMatrix = np.asmatrix(linalg.block_diag(eigenvector, eigenvector)).H @ np.bmat(
@@ -178,6 +185,22 @@ class AnalyticCenter(object):
         plt.plot(alpha, det_alpha)
         self.logger.debug("Maximum reached at alpha = {}".format(alpha[np.argmax(det_alpha)]))
         # plt.show()
+
+    def gradient_sweep(self, X):
+        H = self._get_H_matrix(X)
+        Hinv = np.asmatrix(linalg.inv(H))
+        dimension = self.system.n
+        for i in np.arange(dimension):
+            for j in np.arange(i + 1):
+                E = np.zeros((dimension, dimension))
+                if i == j:
+                    E[i, i] = 1
+                else:
+                    E[i, j] = 1/np.sqrt(2)
+                    E[j, i] = 1/np.sqrt(2)
+                Delta_H = self._get_Delta_H(E)
+                grad = np.trace(- Hinv.H @ Delta_H)
+                self.logger.debug("Gradient: {} Direction: {}, {}".format(grad, i, j))
 
 
 if __name__ == "__main__":
