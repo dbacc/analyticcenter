@@ -1,13 +1,14 @@
-import logging
-
-import numpy as np
-from scipy import linalg
-from logger import prepare_logger
-import yaml
-import os
 import inspect
-import matplotlib.pyplot as plt
+import logging
+import os
+
 import ipdb
+import matplotlib.pyplot as plt
+import numpy as np
+import yaml
+from scipy import linalg
+
+from logger import prepare_logger
 
 
 def rsolve(*args, **kwargs):
@@ -66,7 +67,7 @@ class AnalyticCenter(object):
         self.H0 = None
         self.H = None
         self.tol = tol
-        self.maxiter = 100
+        self.maxiter = 1000
         self.__init_H0()
         self.debug = True
         self.logger = logging.getLogger(__name__)
@@ -114,7 +115,13 @@ class AnalyticCenter(object):
             self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
             self.logger.debug("Current X:\n{}".format(X))
             self.logger.debug("Current P:\n{}".format(P))
-            Delta_X = self._get_ascent_direction(X, A_F)
+            # Delta_X = self._get_ascent_direction(X, A_F)
+            maxindex = self.gradient_sweep(X)
+            Delta_X = 0 * X
+            Delta_X[maxindex] = 1
+            Delta_X = Delta_X.T + Delta_X
+            Delta_X *= self.det_direction_plot(X, Delta_X)
+            # ipdb.set_trace()
             X = X + Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
 
@@ -122,7 +129,6 @@ class AnalyticCenter(object):
             A_F = (self.system.A - self.system.B @ F)
             residual = self.get_residual(X, P, F, A_F)
             determinant = linalg.det(P) * determinant_R
-            ipdb.set_trace()
 
     def get_residual(self, X, P, F, A_F):
         res1 = -self.system.B.T @ X + self.system.S.T - self.system.R @ F
@@ -140,18 +146,33 @@ class AnalyticCenter(object):
         A_T_symmetric = A_T + np.asmatrix(A_T).H
         self.logger.debug("Symmetric part of A_T:\n{}".format(A_T_symmetric))
         largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(self.system.n - 1, self.system.n - 1))
-        # largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(0, 0))
+        smallest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(0, 0))
         largest_eigenvector = largest_eigenpair[1]
         largest_eigenvalue = largest_eigenpair[0]
-        Delta_T = largest_eigenvector @ np.asmatrix(largest_eigenvector).H
+        smallest_eigenvector = smallest_eigenpair[1]
+        smallest_eigenvalue = smallest_eigenpair[0]
+
+        if np.abs(smallest_eigenvalue) < np.abs(largest_eigenvalue):
+            largest_abs_eigenvalue = largest_eigenvalue
+            largest_abs_eigenvector = largest_eigenvector
+        else:
+            largest_abs_eigenvalue = smallest_eigenvalue
+            largest_abs_eigenvector = smallest_eigenvector
+        Delta_T = largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H
         self.logger.debug(
             "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue,
-                                                                                       largest_eigenvector, linalg.norm(
-                    largest_eigenvector)))
+                                                                                       largest_eigenvector,
+                                                                                       linalg.norm(
+                                                                                           largest_eigenvector)))
+        self.logger.debug(
+            "smallest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(smallest_eigenvalue,
+                                                                                        smallest_eigenvector,
+                                                                                        linalg.norm(
+                                                                                            smallest_eigenvector)))
         Delta_X = T @ Delta_T @ T
         # if self.debug:
         #     self.det_direction_plot(X, Delta_X)
-        stepsize = self._get_ascent_step_size(X, T @ largest_eigenvector)
+        stepsize = self._get_ascent_step_size(X, T @ largest_abs_eigenvector)
         return stepsize * Delta_X
 
     def _get_ascent_step_size(self, X, eigenvector):
@@ -179,28 +200,31 @@ class AnalyticCenter(object):
 
     def det_direction_plot(self, X, Delta_X):
         self.logger.debug("Creating det direction plot...")
-        alpha = np.linspace(-1., 1., 2000)
+        alpha = np.linspace(-1., 1., 10000)
         det_alpha = [linalg.det(self.riccati_operator(X + val * Delta_X)) for val in alpha]
         # ipdb.set_trace()
         plt.plot(alpha, det_alpha)
         self.logger.debug("Maximum reached at alpha = {}".format(alpha[np.argmax(det_alpha)]))
         # plt.show()
+        return alpha[np.argmax(det_alpha)]
 
     def gradient_sweep(self, X):
         H = self._get_H_matrix(X)
         Hinv = np.asmatrix(linalg.inv(H))
         dimension = self.system.n
+        grad = np.zeros((dimension, dimension))
         for i in np.arange(dimension):
             for j in np.arange(i + 1):
                 E = np.zeros((dimension, dimension))
                 if i == j:
                     E[i, i] = 1
                 else:
-                    E[i, j] = 1/np.sqrt(2)
-                    E[j, i] = 1/np.sqrt(2)
+                    E[i, j] = 1 / np.sqrt(2)
+                    E[j, i] = 1 / np.sqrt(2)
                 Delta_H = self._get_Delta_H(E)
-                grad = np.trace(- Hinv.H @ Delta_H)
-                self.logger.debug("Gradient: {} Direction: {}, {}".format(grad, i, j))
+                grad[i, j] = np.trace(- Hinv.H @ Delta_H)
+                self.logger.debug("Gradient: {} Direction: {}, {}".format(grad[i, j], i, j))
+        return np.unravel_index(np.argmax(np.abs(grad)), grad.shape)
 
 
 if __name__ == "__main__":
@@ -212,5 +236,5 @@ if __name__ == "__main__":
     D = C @ B
     Q = np.identity(2)
     sys = OptimalControlSystem(A, B, C, D, Q, 0 * B, 2 * D)
-    alg = AnalyticCenter(sys, 10 ** (-1))
+    alg = AnalyticCenter(sys, 10 ** (-3))
     alg.steepest_ascent()
