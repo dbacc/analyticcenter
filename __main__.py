@@ -12,7 +12,7 @@ from logger import prepare_logger
 
 
 def rsolve(*args, **kwargs):
-    return linalg.solve(args[0].T, args[1].T, kwargs)
+    return np.asmatrix(linalg.solve(np.asmatrix(args[0]).H, np.asmatrix(args[1]).H, kwargs)).H
 
 
 def load_config():
@@ -116,12 +116,13 @@ class AnalyticCenter(object):
             self.logger.debug("Current X:\n{}".format(X))
             self.logger.debug("Current P:\n{}".format(P))
             # Delta_X = self._get_ascent_direction(X, A_F)
-            maxindex = self.gradient_sweep(X)
-            Delta_X = 0 * X
-            Delta_X[maxindex] = 1
-            Delta_X = Delta_X.T + Delta_X
-            Delta_X *= self.det_direction_plot(X, Delta_X)
+            # maxindex = self.gradient_sweep(X)
+            # Delta_X = 0 * X
+            # Delta_X[maxindex] = 1
+            # Delta_X = Delta_X.T + Delta_X
+            # Delta_X *= self.det_direction_plot(X, Delta_X)
             # ipdb.set_trace()
+            Delta_X = self._get_ascent_direction(X, A_F)
             X = X + Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
 
@@ -139,14 +140,16 @@ class AnalyticCenter(object):
         return np.linalg.norm(linalg.block_diag(res1, res2, res3))
 
     def _get_ascent_direction(self, X, A_F):
-        T = linalg.sqrtm(self.riccati_operator(X))
-        A_T = T @ rsolve(A_F, T)
+        A_T = rsolve(self.riccati_operator(X), A_F)
         self.logger.debug("Current Feedback Matrix A_F:\n{}".format(A_F))
         self.logger.debug("Current Feedback Matrix transformed A_T:\n{}".format(A_T))
         A_T_symmetric = A_T + np.asmatrix(A_T).H
-        self.logger.debug("Symmetric part of A_T:\n{}".format(A_T_symmetric))
+        #We're assuming simple eigenvalues here!
         largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(self.system.n - 1, self.system.n - 1))
         smallest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(0, 0))
+
+
+        self.logger.debug("Symmetric part of A_T:\n{}".format(A_T_symmetric))
         largest_eigenvector = largest_eigenpair[1]
         largest_eigenvalue = largest_eigenpair[0]
         smallest_eigenvector = smallest_eigenpair[1]
@@ -158,7 +161,8 @@ class AnalyticCenter(object):
         else:
             largest_abs_eigenvalue = smallest_eigenvalue
             largest_abs_eigenvector = smallest_eigenvector
-        Delta_T = largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H
+        Delta_X = largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H
+
         self.logger.debug(
             "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue,
                                                                                        largest_eigenvector,
@@ -169,10 +173,10 @@ class AnalyticCenter(object):
                                                                                         smallest_eigenvector,
                                                                                         linalg.norm(
                                                                                             smallest_eigenvector)))
-        Delta_X = T @ Delta_T @ T
         # if self.debug:
         #     self.det_direction_plot(X, Delta_X)
-        stepsize = self._get_ascent_step_size(X, T @ largest_abs_eigenvector)
+        ipdb.set_trace()
+        stepsize = self._get_ascent_step_size(X, largest_abs_eigenvector)
         return stepsize * Delta_X
 
     def _get_ascent_step_size(self, X, eigenvector):
