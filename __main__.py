@@ -141,6 +141,10 @@ class AnalyticCenter(object):
 
     def _get_ascent_direction(self, X, A_F):
         A_T = rsolve(self.riccati_operator(X), A_F)
+        T = linalg.sqrtm(self.riccati_operator(X))
+
+        A_T = T @ rsolve(T, A_F)
+
         self.logger.debug("Current Feedback Matrix A_F:\n{}".format(A_F))
         self.logger.debug("Current Feedback Matrix transformed A_T:\n{}".format(A_T))
         A_T_symmetric = A_T + np.asmatrix(A_T).H
@@ -161,7 +165,7 @@ class AnalyticCenter(object):
         else:
             largest_abs_eigenvalue = smallest_eigenvalue
             largest_abs_eigenvector = smallest_eigenvector
-        Delta_X = largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H
+        Delta_X = T@ largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H @T
 
         self.logger.debug(
             "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue,
@@ -175,8 +179,8 @@ class AnalyticCenter(object):
                                                                                             smallest_eigenvector)))
         # if self.debug:
         #     self.det_direction_plot(X, Delta_X)
-        ipdb.set_trace()
-        stepsize = self._get_ascent_step_size(X, largest_abs_eigenvector)
+        # ipdb.set_trace()
+        stepsize = self._get_ascent_step_size(X, T@largest_abs_eigenvector)
         return stepsize * Delta_X
 
     def _get_ascent_step_size(self, X, eigenvector):
