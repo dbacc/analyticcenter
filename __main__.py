@@ -175,7 +175,7 @@ class AnalyticCenter(object):
                                                                                             smallest_eigenvector)))
         # if self.debug:
         #     self.det_direction_plot(X, Delta_X)
-        ipdb.set_trace()
+        # ipdb.set_trace()
         stepsize = self._get_ascent_step_size(X, largest_abs_eigenvector)
         return stepsize * Delta_X
 
