@@ -1,8 +1,8 @@
 import inspect
 import logging
 import os
-
 import ipdb
+
 import matplotlib.pyplot as plt
 import numpy as np
 import yaml
@@ -27,14 +27,15 @@ class LTI(object):
     """Describes an LTI system"""
 
     def __init__(self, A, B, C, D):
-        self.A = A
-        self.B = B
-        self.C = C
-        self.D = D
+        self.A = np.asmatrix(A)
+        self.B = np.asmatrix(B)
+        self.C = np.asmatrix(C)
+        self.D = np.asmatrix(D)
         self.n = A.shape[0]
         self.m = B.shape[1]
         self.p = C.shape[0]
         self.logger = logging.getLogger(__name__)
+
 
 
 class OptimalControlSystem(LTI):
@@ -42,12 +43,15 @@ class OptimalControlSystem(LTI):
 
     def __init__(self, A, B, C, D, Q, S, R):
         super().__init__(A, B, C, D)
-        self.Q = Q
-        self.S = S
-        self.R = R
+        self.Q = np.asmatrix(Q)
+        self.S = np.asmatrix(S)
+        self.R = np.asmatrix(R)
         self.__initH0()
         self._check_positivity_weight_matrix()
 
+
+    def save(self):
+        np.save('example-n-{}-m-{}'.format(self.n, self.m), [self.A, self.B, self.C, self.D, self.Q, self.S, self.R])
     def __initH0(self):
         self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
 
@@ -148,10 +152,9 @@ class AnalyticCenter(object):
         self.logger.debug("Current Feedback Matrix A_F:\n{}".format(A_F))
         self.logger.debug("Current Feedback Matrix transformed A_T:\n{}".format(A_T))
         A_T_symmetric = A_T + np.asmatrix(A_T).H
-        #We're assuming simple eigenvalues here!
+        # We're assuming simple eigenvalues here!
         largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(self.system.n - 1, self.system.n - 1))
         smallest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(0, 0))
-
 
         self.logger.debug("Symmetric part of A_T:\n{}".format(A_T_symmetric))
         largest_eigenvector = largest_eigenpair[1]
@@ -180,7 +183,7 @@ class AnalyticCenter(object):
         # if self.debug:
         #     self.det_direction_plot(X, Delta_X)
         # ipdb.set_trace()
-        stepsize = self._get_ascent_step_size(X, T@largest_abs_eigenvector)
+        stepsize = self._get_ascent_step_size(X, largest_abs_eigenvector)
         return stepsize * Delta_X
 
     def _get_ascent_step_size(self, X, eigenvector):
@@ -235,14 +238,39 @@ class AnalyticCenter(object):
         return np.unravel_index(np.argmax(np.abs(grad)), grad.shape)
 
 
-if __name__ == "__main__":
-    logging_config = load_config()
-    prepare_logger(logging_config)
+def init_example1():
     A = np.matrix([[1, -1], [1, 1]])
     B = np.matrix([[1], [1]])
     C = B.T
     D = C @ B
     Q = np.identity(2)
     sys = OptimalControlSystem(A, B, C, D, Q, 0 * B, 2 * D)
+    return sys
+
+
+
+def init_example2():
+    sysmat = np.load('example-n-4-m-2.npy')
+    sys = OptimalControlSystem(*sysmat)
+    return sys
+
+def generate_random_sys_and_save(m,n):
+    A = np.random.rand(n, n)
+    B = np.random.rand(n, m)
+    C = np.random.rand(m, n)
+    D = np.random.rand(m, m)
+    Q = np.random.rand(n, n)
+    Q = Q @ Q.T
+    S = 0.01*np.random.rand(n, m)
+    R = np.random.rand(m, m)
+    R = R @ R.T
+    sys = OptimalControlSystem(A, B, C, D, Q, S, R)
+    sys.save()
+
+
+if __name__ == "__main__":
+    logging_config = load_config()
+    prepare_logger(logging_config)
+    sys = init_example2()
     alg = AnalyticCenter(sys, 10 ** (-3))
     alg.steepest_ascent()
