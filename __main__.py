@@ -47,7 +47,7 @@ class OptimalControlSystem(LTI):
         self.S = np.asmatrix(S)
         self.R = np.asmatrix(R)
         self.__initH0()
-        self._check_positivity_weight_matrix()
+        self._check_positivity(self.H0)
 
 
     def save(self):
@@ -55,12 +55,14 @@ class OptimalControlSystem(LTI):
     def __initH0(self):
         self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
 
-    def _check_positivity_weight_matrix(self):
+    def _check_positivity(self, M):
         try:
-            linalg.cholesky(self.H0)
-            self.logger.info('Positive definite')
+            linalg.cholesky(M)
+            self.logger.info('Matrix {} is positive definite'.format(M))
+            return True
         except linalg.LinAlgError as err:
-            self.logger.info('Not positive definite')
+            self.logger.info('Matrix {} is not positive definite'.format(M))
+            return False
 
 
 class AnalyticCenter(object):
@@ -71,10 +73,12 @@ class AnalyticCenter(object):
         self.H0 = None
         self.H = None
         self.tol = tol
-        self.maxiter = 1000
+        self.maxiter = 2000
         self.__init_H0()
         self.debug = True
         self.logger = logging.getLogger(__name__)
+        self.largest_eigenvalues = np.array([])
+        self.smallest_eigenvalues = np.array([])
 
     def __init_H0(self):
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.transpose(), self.system.R]])
@@ -95,7 +99,10 @@ class AnalyticCenter(object):
         Am = -self.system.A
         Bm = -self.system.B
         X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
-        return -0.5 * (X_minus + X_plus)  # We use negative definite notion of solutions for Riccati equation
+        Xinit = -0.5 * (X_minus + X_plus)  # We use negative definite notion of solutions for Riccati equation
+        self.system._check_positivity(Xinit)
+        # ipdb.set_trace()
+        return Xinit
 
     def _get_F_and_P(self, X):
         F = linalg.solve(self.system.R, self.system.S.H - self.system.B.H @ X)
@@ -114,6 +121,7 @@ class AnalyticCenter(object):
         steps_count = 0
         residual = self.get_residual(X, P, F, A_F)
         while residual > self.tol and steps_count < self.maxiter:
+            # ipdb.set_trace()
             steps_count += 1
             self.logger.info("Current step: {}\tResidual: {}".format(steps_count, residual))
             self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
@@ -126,7 +134,8 @@ class AnalyticCenter(object):
             # Delta_X = Delta_X.T + Delta_X
             # Delta_X *= self.det_direction_plot(X, Delta_X)
             # ipdb.set_trace()
-            Delta_X = self._get_ascent_direction(X, A_F)
+            Delta_X = self._get_ascent_direction_direct(X, A_F)
+            # Delta_X = self._get_ascent_direction_Ttransformed(X, A_F)
             X = X + Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
 
@@ -134,6 +143,7 @@ class AnalyticCenter(object):
             A_F = (self.system.A - self.system.B @ F)
             residual = self.get_residual(X, P, F, A_F)
             determinant = linalg.det(P) * determinant_R
+
 
     def get_residual(self, X, P, F, A_F):
         res1 = -self.system.B.T @ X + self.system.S.T - self.system.R @ F
@@ -143,14 +153,60 @@ class AnalyticCenter(object):
         self.logger.debug("\nres1:\n{},\nres2: {},\nres3: {}".format(res1, res2, res3))
         return np.linalg.norm(linalg.block_diag(res1, res2, res3))
 
-    def _get_ascent_direction(self, X, A_F):
-        A_T = rsolve(self.riccati_operator(X), A_F)
-        T = linalg.sqrtm(self.riccati_operator(X))
+    def _get_ascent_direction_direct(self, X, A_F):
 
+        A_T = rsolve(self.riccati_operator(X), A_F)
+
+        self.logger.debug("Current Feedback Matrix A_F:\n{}".format(A_F))
+        self.logger.debug("Current Feedback Matrix transformed A_T:\n{}".format(A_T))
+        A_T_symmetric = A_T + np.asmatrix(A_T).H
+        # We're assuming simple eigenvalues here!
+        largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(self.system.n - 1, self.system.n - 1))
+        smallest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(0, 0))
+
+        self.logger.debug("Symmetric part of A_T:\n{}".format(A_T_symmetric))
+        largest_eigenvector = largest_eigenpair[1]
+        largest_eigenvalue = largest_eigenpair[0]
+
+        smallest_eigenvector = smallest_eigenpair[1]
+        smallest_eigenvalue = smallest_eigenpair[0]
+
+        if np.abs(smallest_eigenvalue) < np.abs(largest_eigenvalue):
+            largest_abs_eigenvalue = largest_eigenvalue
+            smallest_abs_eigenvalue = smallest_eigenvalue
+            largest_abs_eigenvector = largest_eigenvector
+        else:
+            largest_abs_eigenvalue = smallest_eigenvalue
+            largest_abs_eigenvector = smallest_eigenvector
+            smallest_abs_eigenvalue = largest_eigenvalue
+        self.largest_eigenvalues = np.append(self.largest_eigenvalues, largest_abs_eigenvalue)
+        self.smallest_eigenvalues = np.append(self.smallest_eigenvalues, smallest_abs_eigenvalue)
+        Delta_X =largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H
+
+        self.logger.debug(
+            "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue,
+                                                                                       largest_eigenvector,
+                                                                                       linalg.norm(
+                                                                                           largest_eigenvector)))
+        self.logger.debug(
+            "smallest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(smallest_eigenvalue,
+                                                                                        smallest_eigenvector,
+                                                                                        linalg.norm(
+                                                                                            smallest_eigenvector)))
+        # if self.debug:
+        #     self.det_direction_plot(X, Delta_X)
+        # ipdb.set_trace()
+        stepsize = self._get_ascent_step_size(X, largest_abs_eigenvector)
+        return stepsize * Delta_X
+
+    def _get_ascent_direction_Ttransformed(self, X, A_F):
+
+        T = linalg.sqrtm(self.riccati_operator(X))
         A_T = T @ rsolve(T, A_F)
 
         self.logger.debug("Current Feedback Matrix A_F:\n{}".format(A_F))
         self.logger.debug("Current Feedback Matrix transformed A_T:\n{}".format(A_T))
+
         A_T_symmetric = A_T + np.asmatrix(A_T).H
         # We're assuming simple eigenvalues here!
         largest_eigenpair = linalg.eigh(A_T_symmetric, eigvals=(self.system.n - 1, self.system.n - 1))
@@ -168,7 +224,8 @@ class AnalyticCenter(object):
         else:
             largest_abs_eigenvalue = smallest_eigenvalue
             largest_abs_eigenvector = smallest_eigenvector
-        Delta_X = T@ largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H @T
+        Delta_X = T @ largest_abs_eigenvector @ np.asmatrix(largest_abs_eigenvector).H @ T
+
 
         self.logger.debug(
             "largest eigenvalue: {},\tcorresponding eigenvector: {},\tnorm: {}".format(largest_eigenvalue,
@@ -180,10 +237,7 @@ class AnalyticCenter(object):
                                                                                         smallest_eigenvector,
                                                                                         linalg.norm(
                                                                                             smallest_eigenvector)))
-        # if self.debug:
-        #     self.det_direction_plot(X, Delta_X)
-        # ipdb.set_trace()
-        stepsize = self._get_ascent_step_size(X, largest_abs_eigenvector)
+        stepsize = self._get_ascent_step_size(X, T@largest_abs_eigenvector)
         return stepsize * Delta_X
 
     def _get_ascent_step_size(self, X, eigenvector):
@@ -255,16 +309,23 @@ def init_example2():
     return sys
 
 def generate_random_sys_and_save(m,n):
-    A = np.random.rand(n, n)
-    B = np.random.rand(n, m)
-    C = np.random.rand(m, n)
-    D = np.random.rand(m, m)
-    Q = np.random.rand(n, n)
-    Q = Q @ Q.T
-    S = 0.01*np.random.rand(n, m)
-    R = np.random.rand(m, m)
-    R = R @ R.T
-    sys = OptimalControlSystem(A, B, C, D, Q, S, R)
+    while True:
+        A = np.random.rand(n, n)
+        B = np.random.rand(n, m)
+        C = np.random.rand(m, n)
+        D = np.random.rand(m, m)
+        Q = np.random.rand(n, n)
+        Q = Q @ Q.T
+        S = 0.01*np.random.rand(n, m)
+        R = np.random.rand(m, m)
+        R = R @ R.T
+        sys = OptimalControlSystem(A, B, C, D, Q, S, R)
+        alg = AnalyticCenter(sys, 10 ** (-3))
+        if sys._check_positivity(sys.H0):
+            continue
+        if sys._check_positivity(alg._get_H_matrix(alg._get_initial_X())):
+            break
+
     sys.save()
 
 
@@ -272,5 +333,6 @@ if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
     sys = init_example2()
+
     alg = AnalyticCenter(sys, 10 ** (-3))
     alg.steepest_ascent()
