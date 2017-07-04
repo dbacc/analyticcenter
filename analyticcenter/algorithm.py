@@ -36,6 +36,9 @@ class AnalyticCenter(object):
     def _get_Delta_H(self, Delta_X):
         return self._get_H_matrix(Delta_X) - self.H0
 
+    def _newton_homotopy(self, X):
+        return self._get_newton_direction
+
     def _get_initial_X(self):
         if self.X0 is None:
             self.logger.info('Computing initial X')
@@ -44,8 +47,10 @@ class AnalyticCenter(object):
             Bm = -self.system.B
             X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
             Xinit = -0.5 * (X_minus + X_plus)  # We use negative definite notion of solutions for Riccati equation
-            self.system._check_positivity(Xinit)
-            # ipdb.set_trace()
+            self.system._check_positivity(-Xinit)
+            self.logger.info("Improving Initial X with Newton approach")
+            self._directional_iterative_algorithm(direction=self._newton_homotopy)
+            self._newton_homotopy(Xinit)
         else:
             self.logger.info("Using user supplied initial X")
             Xinit = self.X0
@@ -94,19 +99,21 @@ class AnalyticCenter(object):
         print_information(steps_count, residual, determinant, X)
         return X
 
-    def _get_newton_direction(self, X0, P0, A_F):
-        # H0 = self._get_H_matrix(X0)
-        # P0 = schur_complement(H0, self.system.n)
+    def _get_newton_direction(self, X0, P0, A_F, newton_step_solver):
+        A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0)
+
+        Delta_X_hat = newton_step_solver(A_F_hat, S2, X0)
+        Delta_X = P0_root @ Delta_X_hat @ P0_root
+        return Delta_X
+
+    def _transform_system2current_X0(self, A_F, P0):
         P0_root = linalg.sqrtm(P0)
         B_hat = P0_root @ self.system.B
         A_F_hat = rsolve(P0_root, (P0_root @ A_F))
         S2 = B_hat @ linalg.solve(self.system.R, B_hat.H)  # only works in continuous time
+        return A_F_hat, P0_root, S2
 
-        Delta_X_hat = self._solve_newton_step(A_F_hat, S2)
-        Delta_X = P0_root @ Delta_X_hat @ P0_root
-        return Delta_X
-
-    def _solve_newton_step(self, A, S):
+    def _solve_newton_step_nd(self, A, S, X):
         '''solve newton step using kronecker products. Will be way too expensive in general!'''
         # TODO: use Schur Form
         rhs = np.ravel(A + A.H)
@@ -132,6 +139,9 @@ class AnalyticCenter(object):
             else:
                 self.logger.debug("det factor by newton step: {}".format(det_factor))
         return Delta
+
+    def _solve_newton_step_1d(self, A, S, X):
+        return - 0.5 * (np.real(np.trace(X @ S @ X)) / np.real(np.trace(X @ A + A.H @ X))) * X
 
     def steepest_ascent(self):
         self.logger.info("Computing Analytic Center with steepest_ascent approach")
