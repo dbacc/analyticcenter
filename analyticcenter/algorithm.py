@@ -1,11 +1,14 @@
 import numpy as np
 from scipy import linalg
 
-from misc import schur_complement, rsolve
+from misc.misc import schur_complement, rsolve
+import logging
+import ipdb
 
 
 class AnalyticCenter(object):
     """ToDo"""
+    __debug = True
 
     def __init__(self, system, tol):
         self.system = system
@@ -58,6 +61,14 @@ class AnalyticCenter(object):
         self._directional_iterative_algorithm(direction=self._get_newton_direction)
 
     def _directional_iterative_algorithm(self, direction):
+        def print_information(steps_count, residual, determinant, X):
+            self.logger.info("Current step: {}\tResidual: {}".format(steps_count, residual))
+            self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
+            self.logger.debug("Current X:\n{}".format(X))
+            if np.real(determinant) < 0:
+                self.logger.critical("Something went wrong. Determinant ist negative. Aborting...")
+                raise ValueError("Something went wrong. Determinant ist negative")
+
         determinant_R = linalg.det(self.system.R)
         # noinspection PyPep8Naming
         X = self._get_initial_X()
@@ -69,15 +80,9 @@ class AnalyticCenter(object):
         residual = self.get_residual(X, P, F, A_F)
         while residual > self.tol and steps_count < self.maxiter:
             # ipdb.set_trace()
-            steps_count += 1
-            self.logger.info("Current step: {}\tResidual: {}".format(steps_count, residual))
-            self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
-            self.logger.debug("Current X:\n{}".format(X))
-            if np.real(determinant) < 0:
-                self.logger.critical("Something went wrong. Determinant ist negative. Aborting...")
-                raise ValueError("Something went wrong. Determinant ist negative")
 
-            Delta_X = direction(X, A_F)
+            print_information(steps_count, residual, determinant, X)
+            Delta_X = direction(X, P, A_F)
             X = X + Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
 
@@ -85,13 +90,16 @@ class AnalyticCenter(object):
             A_F = (self.system.A - self.system.B @ F)
             residual = self.get_residual(X, P, F, A_F)
             determinant = linalg.det(P) * determinant_R
+            steps_count += 1
+        print_information(steps_count, residual, determinant, X)
+        return X
 
-    def _get_newton_direction(self, X0, A_F):
-        H0 = self._get_H_matrix(X0)
-        P0 = schur_complement(H0, self.system.n)
+    def _get_newton_direction(self, X0, P0, A_F):
+        # H0 = self._get_H_matrix(X0)
+        # P0 = schur_complement(H0, self.system.n)
         P0_root = linalg.sqrtm(P0)
         B_hat = P0_root @ self.system.B
-        A_F_hat = rsolve((P0_root @ A_F), P0_root)
+        A_F_hat = rsolve(P0_root, (P0_root @ A_F))
         S2 = B_hat @ linalg.solve(self.system.R, B_hat.H)  # only works in continuous time
 
         Delta_X_hat = self._solve_newton_step(A_F_hat, S2)
@@ -100,13 +108,14 @@ class AnalyticCenter(object):
 
     def _solve_newton_step(self, A, S):
         '''solve newton step using kronecker products. Will be way too expensive in general!'''
+        # TODO: use Schur Form
         rhs = np.ravel(A + A.H)
         AAH = A @ A.H
         n = self.system.n
         identity = np.identity(n)
         lhs = - np.kron(A.T, A) - np.kron(np.conj(A), A.H) - np.kron(identity, AAH) - np.kron(AAH.T,
-                                                                                              identity) + np.kron(
-            identity, S) + np.kron(S, identity)
+                                                                                              identity) - np.kron(
+            identity, S) - np.kron(S, identity)
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
         Delta = linalg.solve(lhs, rhs)
         self.logger.debug("Solution Delta:\n{}".format(Delta))
@@ -114,14 +123,14 @@ class AnalyticCenter(object):
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
 
         # check if indeed solution:
-        res = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H + S @ Delta + Delta @ S - A - A.H
-        self.logger.debug("norm of the residual: {}".format(linalg.norm(res)))
-        det_factor = linalg.det(identity - Delta @ A - A.H @ Delta - Delta @ S @ Delta)
-        if det_factor < 1.:
-            self.logger.critical("det factor by newton stepn is less than 1: {}".format(det_factor))
-        else:
-            self.logger.debug("det factor by newton step: {}".format(det_factor))
-
+        if self.debug:
+            res = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H - S @ Delta - Delta @ S - A - A.H
+            self.logger.debug("norm of the residual: {}".format(linalg.norm(res)))
+            det_factor = linalg.det(identity - Delta @ A - A.H @ Delta - Delta @ S @ Delta)
+            if det_factor < 1.:
+                self.logger.critical("det factor by newton step is less than 1: {}".format(det_factor))
+            else:
+                self.logger.debug("det factor by newton step: {}".format(det_factor))
         return Delta
 
     def steepest_ascent(self):

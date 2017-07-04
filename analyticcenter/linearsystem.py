@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import linalg
-
+import logging
 
 class LTI(object):
     """Describes an LTI system"""

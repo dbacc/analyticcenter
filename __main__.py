@@ -4,9 +4,6 @@ import os
 import numpy as np
 import yaml
 
-
-
-
 from logger import prepare_logger
 
 from analyticcenter.algorithm import AnalyticCenter
@@ -19,9 +16,6 @@ def load_config():
     with open(configpath, 'rt') as f:
         config = yaml.safe_load(f.read())
     return config
-
-
-
 
 
 def init_example1():
@@ -40,12 +34,9 @@ def init_example2():
     return sys
 
 
-
-
-
 if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
     sys = init_example1()
 
-    alg = AnalyticCenter(sys, 10 ** (-3))
+    alg = AnalyticCenter(sys, 10 ** (-12))
