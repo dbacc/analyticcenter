@@ -4,6 +4,7 @@ from scipy import linalg
 from misc.misc import schur_complement, rsolve
 import logging
 import ipdb
+from functools import partial
 
 
 class AnalyticCenter(object):
@@ -36,9 +37,6 @@ class AnalyticCenter(object):
     def _get_Delta_H(self, Delta_X):
         return self._get_H_matrix(Delta_X) - self.H0
 
-    def _newton_homotopy(self, X):
-        return self._get_newton_direction
-
     def _get_initial_X(self):
         if self.X0 is None:
             self.logger.info('Computing initial X')
@@ -46,13 +44,14 @@ class AnalyticCenter(object):
             Am = -self.system.A
             Bm = -self.system.B
             X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
-            Xinit = -0.5 * (X_minus + X_plus)  # We use negative definite notion of solutions for Riccati equation
-            self.system._check_positivity(-Xinit)
+            self.search_direction = (X_minus + X_plus)
+            self.X0 = -0.5 * self.search_direction  # We use negative definite notion of solutions for Riccati equation
             self.logger.info("Improving Initial X with Newton approach")
-            self._directional_iterative_algorithm(direction=self._newton_homotopy)
-            self._newton_homotopy(Xinit)
+            Xinit = self._directional_iterative_algorithm(
+                direction=partial(self._get_newton_direction, newton_step_solver=self._solve_newton_step_1d))
+
         else:
-            self.logger.info("Using user supplied initial X")
+            self.logger.info("initial X is already set")
             Xinit = self.X0
         return Xinit
 
@@ -61,9 +60,12 @@ class AnalyticCenter(object):
         P = self.riccati_operator(X)
         return F, P
 
-    def newton(self):
-        self.logger.info("Computing Analytic Center with Newton approach")
-        self._directional_iterative_algorithm(direction=self._get_newton_direction)
+    def _transform_system2current_X0(self, A_F, P0):
+        P0_root = linalg.sqrtm(P0)
+        B_hat = P0_root @ self.system.B
+        A_F_hat = rsolve(P0_root, (P0_root @ A_F))
+        S2 = B_hat @ linalg.solve(self.system.R, B_hat.H)  # only works in continuous time
+        return A_F_hat, P0_root, S2
 
     def _directional_iterative_algorithm(self, direction):
         def print_information(steps_count, residual, determinant, X):
@@ -83,11 +85,13 @@ class AnalyticCenter(object):
         A_F = (self.system.A - self.system.B @ F)
         steps_count = 0
         residual = self.get_residual(X, P, F, A_F)
-        while residual > self.tol and steps_count < self.maxiter:
+        Delta_residual = float("inf")
+        while residual > self.tol and Delta_residual > self.tol and steps_count < self.maxiter:
             # ipdb.set_trace()
 
             print_information(steps_count, residual, determinant, X)
             Delta_X = direction(X, P, A_F)
+            Delta_residual = linalg.norm(Delta_X)
             X = X + Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
 
@@ -99,21 +103,19 @@ class AnalyticCenter(object):
         print_information(steps_count, residual, determinant, X)
         return X
 
+    def newton(self):
+        self.logger.info("Computing Analytic Center with Newton approach")
+        self._directional_iterative_algorithm(
+            direction=partial(self._get_newton_direction, newton_step_solver=self._solve_newton_step_nd))
+
     def _get_newton_direction(self, X0, P0, A_F, newton_step_solver):
         A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0)
 
-        Delta_X_hat = newton_step_solver(A_F_hat, S2, X0)
+        Delta_X_hat = newton_step_solver(A_F_hat, S2, P0_root)
         Delta_X = P0_root @ Delta_X_hat @ P0_root
         return Delta_X
 
-    def _transform_system2current_X0(self, A_F, P0):
-        P0_root = linalg.sqrtm(P0)
-        B_hat = P0_root @ self.system.B
-        A_F_hat = rsolve(P0_root, (P0_root @ A_F))
-        S2 = B_hat @ linalg.solve(self.system.R, B_hat.H)  # only works in continuous time
-        return A_F_hat, P0_root, S2
-
-    def _solve_newton_step_nd(self, A, S, X):
+    def _solve_newton_step_nd(self, A, S, P0_root):
         '''solve newton step using kronecker products. Will be way too expensive in general!'''
         # TODO: use Schur Form
         rhs = np.ravel(A + A.H)
@@ -140,8 +142,11 @@ class AnalyticCenter(object):
                 self.logger.debug("det factor by newton step: {}".format(det_factor))
         return Delta
 
-    def _solve_newton_step_1d(self, A, S, X):
-        return - 0.5 * (np.real(np.trace(X @ S @ X)) / np.real(np.trace(X @ A + A.H @ X))) * X
+    def _solve_newton_step_1d(self, A, S, P0_root):
+        search_dir = linalg.solve(P0_root, rsolve(P0_root, self.search_direction))
+        self.logger.debug("Search direction: {}".format(self.search_direction))
+        return -0.5 * (np.real(np.trace(search_dir @ A + A.H @ search_dir)) / np.real(
+            np.trace(search_dir @ S @ search_dir))) * search_dir
 
     def steepest_ascent(self):
         self.logger.info("Computing Analytic Center with steepest_ascent approach")

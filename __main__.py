@@ -40,3 +40,4 @@ if __name__ == "__main__":
     sys = init_example1()
 
     alg = AnalyticCenter(sys, 10 ** (-12))
+    alg.newton()
