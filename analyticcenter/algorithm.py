@@ -67,6 +67,7 @@ class AnalyticCenter(object):
 
 
 class AnalyticCenterContinuousTime(AnalyticCenter):
+    # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = False
 
     def __init__(self, system, tol):
@@ -88,7 +89,7 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
     def get_residual(self, X, P, F, A_F):
         res = P @ A_F
         res = res + res.H
-        self.logger.debug("\res: {}".format(res))
+        self.logger.debug("res: {}".format(res))
         return np.linalg.norm(res)
 
     def riccati_operator(self, X, F=None):
@@ -110,6 +111,7 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
 
 
 class AnalyticCenterDiscreteTime(AnalyticCenter):
+    # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = True
 
     def __init__(self, system, tol):
@@ -124,19 +126,20 @@ class AnalyticCenterDiscreteTime(AnalyticCenter):
 
     def _get_F_and_P(self, X):
         F = np.asmatrix(linalg.solve(self.system.R - self.system.B.H @ X @ self.system.B,
-                         self.system.S.H - self.system.B.H @ X @ self.system.A))
+                                     self.system.S.H - self.system.B.H @ X @ self.system.A))
         P = self.riccati_operator(X, F)
         return F, P
 
     def get_residual(self, X, P, F, A_F):
-        res = P @ A_F
-        res = res + res.H
-        self.logger.debug("\res: {}".format(res))
+        Pinv = linalg.inv(P)
+        res = A_F @ Pinv @ A_F.H - Pinv + self.system.B @ linalg.solve(
+            self.system.R - self.system.B.H @ X @ self.system.B,
+            self.system.B.H)
+        self.logger.debug("res: {}".format(res))
         return np.linalg.norm(res)
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X @ self.system.A + self.system.S.H
-        ipdb.set_trace()
         Ricc = self.system.Q - self.system.A.H @ X @ self.system.A + X
         R = self._get_R(X)
         if F is None:
