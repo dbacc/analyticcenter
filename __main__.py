@@ -6,8 +6,9 @@ import yaml
 
 from logger import prepare_logger
 
-from analyticcenter.algorithm import AnalyticCenter
+from analyticcenter.algorithm import get_analytic_center_object
 from analyticcenter.linearsystem import OptimalControlSystem
+from analyticcenter.direction import  NewtonDirectionMultipleDimensionsDT
 
 
 def load_config():
@@ -39,5 +40,6 @@ if __name__ == "__main__":
     prepare_logger(logging_config)
     sys = init_example1()
 
-    alg = AnalyticCenter(sys, 10 ** (-12))
-    alg.newton()
+    alg = get_analytic_center_object(sys, 10 ** (-12))
+    dir = NewtonDirectionMultipleDimensionsDT()
+    dir()
