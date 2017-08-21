@@ -65,6 +65,24 @@ class AnalyticCenter(object):
                 self.logger.debug("Gradient: {} Direction: {}, {}".format(grad[i, j], i, j))
         return np.unravel_index(np.argmax(np.abs(grad)), grad.shape)
 
+    def _get_H_matrix(self, X: np.matrix):
+        raise NotImplementedError
+
+    def _get_F_and_P(self, X):
+        raise NotImplementedError
+
+    def get_residual(self, X, P, F, A_F):
+        raise NotImplementedError
+
+    def riccati_operator(self, X, F=None):
+        raise NotImplementedError
+
+    def _get_R(self, X):
+        raise NotImplementedError
+
+    def _get_determinant_R(self, X):
+        raise NotImplementedError
+
 
 class AnalyticCenterContinuousTime(AnalyticCenter):
     # TODO: Improve performance by saving intermediate results where appropriate
@@ -86,11 +104,15 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
         P = self.riccati_operator(X, F)
         return F, P
 
-    def get_residual(self, X, P, F, A_F):
+    def get_residual(self, X, P, F, A_F, Delta = None):
+
         res = P @ A_F
         res = res + res.H
         self.logger.debug("res: {}".format(res))
-        return np.linalg.norm(res)
+        if Delta is None:
+            return np.linalg.norm(res)
+        else:
+            return np.real(np.trace(res @ Delta))
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
@@ -130,13 +152,16 @@ class AnalyticCenterDiscreteTime(AnalyticCenter):
         P = self.riccati_operator(X, F)
         return F, P
 
-    def get_residual(self, X, P, F, A_F):
+    def get_residual(self, X, P, F, A_F, Delta=None):
         Pinv = linalg.inv(P)
         res = A_F @ Pinv @ A_F.H - Pinv + self.system.B @ linalg.solve(
             self.system.R - self.system.B.H @ X @ self.system.B,
             self.system.B.H)
         self.logger.debug("res: {}".format(res))
-        return np.linalg.norm(res)
+        if Delta is None:
+            return np.linalg.norm(res)
+        else:
+            return np.real(np.trace(res @ Delta))
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X @ self.system.A + self.system.S.H

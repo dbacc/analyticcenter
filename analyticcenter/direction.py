@@ -15,6 +15,7 @@ class DirectionAlgorithm(object):
     initial_X = None
     discrete_time = False
     maxiter = 100
+    search_direction = None
 
     def __init__(self, ac_object, discrete_time):
         DirectionAlgorithm.ac_object = ac_object
@@ -41,8 +42,9 @@ class DirectionAlgorithm(object):
         determinant = linalg.det(P) * self.ac_object._get_determinant_R(X)
         A_F = (self.system.A - self.system.B @ F)
         steps_count = 0
-        residual = self.ac_object.get_residual(X, P, F, A_F)
+        residual = self.ac_object.get_residual(X, P, F, A_F, self.search_direction)
         Delta_residual = float("inf")
+        # ipdb.set_trace()
         while residual > self.ac_object.tol and Delta_residual > self.ac_object.tol and steps_count < self.maxiter:
             # ipdb.set_trace()
 
@@ -146,7 +148,7 @@ class NewtonDirectionMultipleDimensionsDT(NewtonDirection):
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
 
         # check if indeed solution:
-        ipdb.set_trace()
+        # ipdb.set_trace()
         if self.debug:
             self._check(A, S, Delta)
         return Delta
@@ -324,12 +326,12 @@ class InitialX(DirectionAlgorithm):
             Bm = -self.system.B
             X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
             newton_direction = self.newton_direction
-            search_direction = (X_minus + X_plus)
-            newton_direction.search_direction = search_direction
-            InitialX.X0 = -0.5 * search_direction  # We use negative definite notion of solutions for Riccati equation
+            self.search_direction = (X_minus + X_plus)
+            newton_direction.search_direction = self.search_direction
+            InitialX.X0 = -0.5 * self.search_direction  # We use negative definite notion of solutions for Riccati equation
             self.logger.info("Improving Initial X with Newton approach")
 
-            ipdb.set_trace()
+            # ipdb.set_trace()
             Xinit = self._directional_iterative_algorithm(direction=newton_direction._get_newton_direction)
 
         else:
