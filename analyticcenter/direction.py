@@ -91,6 +91,9 @@ class NewtonDirection(DirectionAlgorithm):
         S2 = B_hat @ linalg.solve(R0, B_hat.H)  # only works in continuous time
         return A_F_hat, P0_root, S2
 
+    def _splitting_method(self, A, S, P0_root):
+        raise NotImplementedError
+
 
 class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
     def __init__(self):
@@ -124,6 +127,33 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
             else:
                 self.logger.debug("det factor by newton step: {}".format(det_factor))
 
+        return Delta
+
+
+class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
+    maxiter_newton = 200
+    tol_newton = 10 ** -10
+
+    def __init__(self):
+        pass
+
+    def _newton_step_solver(self, A, S, P0_root):
+        alpha = -  # TODO how to choose alpha?
+        n = self.system.n
+        identity = np.identity(n)
+        AAH = A @ A.H
+        API = A + identity
+        Delta = 0 * A
+        i = 0
+        test = self.tol_newton + 1
+        while i < self.maxiter_newton and linalg.norm(test) > self.tol_newton:
+            rhs = 2 * alpha * Delta - A @ Delta @ A - A.H @ Delta @ A.H - A - A.H
+            Delta = linalg.solve_lyapunov(AAH + S + alpha * identity, rhs)
+
+            test = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H - S @ Delta - Delta @ S - A - A.H
+            i += 1
+            self.logger.debug(
+                "Current value of Delta in Newton iteration:\n{}\nresidual: {}".format(Delta, linalg.norm(test)))
         return Delta
 
 

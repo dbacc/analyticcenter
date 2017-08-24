@@ -3,12 +3,14 @@ import os
 
 import numpy as np
 import yaml
+from traitlets.traitlets import directional_link
 
 from logger import prepare_logger
 
 from analyticcenter.algorithm import get_analytic_center_object
 from analyticcenter.linearsystem import OptimalControlSystem
 from analyticcenter.direction import  NewtonDirectionMultipleDimensionsCT
+from analyticcenter.direction import  NewtonDirectionIterativeCT
 from analyticcenter.direction import  NewtonDirectionMultipleDimensionsDT
 
 
@@ -41,6 +43,6 @@ if __name__ == "__main__":
     prepare_logger(logging_config)
     sys = init_example1()
 
-    alg = get_analytic_center_object(sys, 10 ** (-12), discrete_time=True)
-    dir = NewtonDirectionMultipleDimensionsDT()
-    dir()
+    alg = get_analytic_center_object(sys, 10 ** (-8), discrete_time=False)
+    direction_method = NewtonDirectionIterativeCT()
+    direction_method()
