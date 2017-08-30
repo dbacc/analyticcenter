@@ -138,7 +138,7 @@ class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
         pass
 
     def _newton_step_solver(self, A, S, P0_root):
-        alpha = -  # TODO how to choose alpha?
+        alpha = 0  # TODO how to choose alpha?
         n = self.system.n
         identity = np.identity(n)
         AAH = A @ A.H
@@ -152,8 +152,16 @@ class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
 
             test = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H - S @ Delta - Delta @ S - A - A.H
             i += 1
+            eigA = linalg.eig(A)[0]
+            eigsAkron = np.max(np.abs(np.real(eigA)**2 -np.imag(eigA)**2))
             self.logger.debug(
                 "Current value of Delta in Newton iteration:\n{}\nresidual: {}".format(Delta, linalg.norm(test)))
+            self.logger.debug("Maximal eigenvalue of AA.T: {}\n AA.T + Z: {}\nA*A.T- conjA*A.H:{}".format(np.max(np.abs(linalg.eigh(AAH )[0])),
+                                                                                                          np.max(np.abs(
+                                                                                                              linalg.eigh(
+                                                                                                                  AAH + S)[0])),
+                                                                                                              eigsAkron
+                                                                                                          ))
         return Delta
 
 
