@@ -1,10 +1,8 @@
+import logging
+
 import numpy as np
 from scipy import linalg
-from functools import lru_cache
-from misc.misc import schur_complement, rsolve
-import logging
-import ipdb
-from functools import partial
+
 from analyticcenter.direction import DirectionAlgorithm
 
 
@@ -26,7 +24,7 @@ class AnalyticCenter(object):
         self.H0 = None
         self.H = None
         self.tol = tol
-        self.maxiter = 2000
+        self.maxiter = 10
         self.__init_H0()
         self.debug = True
         DirectionAlgorithm(self, self.discrete_time)

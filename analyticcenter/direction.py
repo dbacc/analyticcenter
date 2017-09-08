@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import linalg
+import control
 
 from misc.misc import schur_complement, rsolve
 import logging
@@ -14,7 +15,7 @@ class DirectionAlgorithm(object):
     system = None
     initial_X = None
     discrete_time = False
-    maxiter = 100
+    maxiter = 10
     search_direction = None
 
     def __init__(self, ac_object, discrete_time):
@@ -138,7 +139,7 @@ class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
         pass
 
     def _newton_step_solver(self, A, S, P0_root):
-        alpha = -  # TODO how to choose alpha?
+        alpha = 0  # TODO how to choose alpha?
         n = self.system.n
         identity = np.identity(n)
         AAH = A @ A.H
@@ -210,7 +211,6 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
         correction = -(np.real(np.trace(search_dir @ A + A.H @ search_dir)) / (np.real(
             np.trace(search_dir @ S @ search_dir)) + 0.5 * linalg.norm(
             search_dir @ A + A.H @ search_dir) ** 2))
-        ipdb.set_trace()
         return correction * search_dir
 
 
@@ -351,10 +351,10 @@ class InitialX(DirectionAlgorithm):
         if InitialX.X0 is None:
             self.logger.info('Computing initial X')
 
-            X_plus = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R)
+            X_plus = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S, np.identity(self.system.n))
             Am = -self.system.A
             Bm = -self.system.B
-            X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
+            X_minus = self.riccati_solver(Am, Bm, self.system.Q, self.system.R, self.system.S, np.identity(self.system.n))
             newton_direction = self.newton_direction
             self.search_direction = (X_minus + X_plus)
             newton_direction.search_direction = self.search_direction
@@ -373,7 +373,7 @@ class InitialX(DirectionAlgorithm):
 
 class InitialXCT(InitialX):
     newton_direction = NewtonDirectionOneDimensionCT()
-    riccati_solver = staticmethod(linalg.solve_continuous_are)
+    riccati_solver = staticmethod(lambda *args: control.care(*args)[0])
 
     def __init__(self):
         pass
@@ -381,7 +381,7 @@ class InitialXCT(InitialX):
 
 class InitialXDT(InitialX):
     newton_direction = NewtonDirectionOneDimensionDT()
-    riccati_solver = staticmethod(linalg.solve_discrete_are)
+    riccati_solver = staticmethod(lambda *args: control.dare(*args)[0])
 
     def __init__(self):
         pass
