@@ -7,8 +7,8 @@ from analyticcenter.algorithm import get_analytic_center_object
 from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT
 
 from logger import prepare_logger
-from examples.rlc import sys
-# from examples.example1 import sys
+
+# from examples.example3 import sys
 
 def load_config():
     cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
@@ -21,7 +21,7 @@ def load_config():
 if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
-
+    from examples.rlc import sys
     alg = get_analytic_center_object(sys, 10 ** (-8), discrete_time=False)
     direction_method = NewtonDirectionMultipleDimensionsCT()
     direction_method()

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import linalg
-
+import logging
+logger = logging.getLogger()
 
 
 
@@ -17,3 +18,16 @@ def schur_complement(X, n, mode='upper'):
     return complement
 
 
+def check_positivity(M, M_name=""):
+    logger.debug("Checking positive definiteness for matrix {}:\n{}".format(M_name, M))
+    try:
+        linalg.cholesky(M)
+        logger.debug('Matrix {} is non-negative'.format(M_name))
+        return True
+    except linalg.LinAlgError as err:
+        lmin = np.min(linalg.eigh(M)[0])
+        if lmin >=0 or np.isclose(lmin,0):
+            logger.warning('Matrix {} seems to be non-negative, but Cholesky factorization failed due to roundoff errors'.format(M_name))
+        else:
+            logger.critical('Matrix {} is not non-negative'.format(M_name))
+        return False
