@@ -1,11 +1,10 @@
+import logging
+
 import numpy as np
 from scipy import linalg
-from functools import lru_cache
-from misc.misc import schur_complement, rsolve
-import logging
-import ipdb
-from functools import partial
+
 from analyticcenter.direction import DirectionAlgorithm
+import misc.misc as misc
 
 
 def get_analytic_center_object(system, tol, discrete_time=False):
@@ -17,16 +16,16 @@ def get_analytic_center_object(system, tol, discrete_time=False):
 
 class AnalyticCenter(object):
     """ToDo"""
-    __debug = True
+    debug = True
     logger = logging.getLogger(__name__)
-
+    rel_tol = 1.e-30
     def __init__(self, system, tol, discrete_time):
         self.system = system
         self.X0 = None
         self.H0 = None
         self.H = None
         self.tol = tol
-        self.maxiter = 2000
+        self.maxiter = 100
         self.__init_H0()
         self.debug = True
         DirectionAlgorithm(self, self.discrete_time)
@@ -97,6 +96,8 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
         B = self.system.B
         H = self.H0 - np.bmat([[A.H @ X + X @ A, X @ B],
                                [B.H @ X, np.zeros((self.system.m, self.system.m))]])
+        if self.debug:
+            misc.check_positivity(H, "H(X)")
         return H
 
     def _get_F_and_P(self, X):
@@ -131,6 +132,17 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
             self._determinant_R = linalg.det(self.system.R)
         return self._determinant_R
 
+    def _get_Hamiltonian(self):
+        A = self.system.A
+        B = self.system.B
+        Q = self.system.Q
+        R = self.system.R
+        S = self.system.S
+        RinvSH = linalg.solve(R, S.H)
+        H1 = A - B @ RinvSH
+        Ham = np.bmat([[H1, - B @ linalg.solve(R, B.H)],
+                               [-Q + S @ RinvSH, -H1.H]])
+        self.logger.debug("Eigenvalues of the Hamiltonian:\n{}".format(linalg.eig(Ham)[0]))
 
 class AnalyticCenterDiscreteTime(AnalyticCenter):
     # TODO: Improve performance by saving intermediate results where appropriate
@@ -144,6 +156,8 @@ class AnalyticCenterDiscreteTime(AnalyticCenter):
         B = self.system.B
         H = self.H0 - np.bmat([[A.H @ X @ A - X, A.H @ X @ B],
                                [B.H @ X @ A, B.H @ X @ B]])
+        if self.debug:
+            misc.check_positivity(H, "H(X)")
         return H
 
     def _get_F_and_P(self, X):
@@ -178,3 +192,5 @@ class AnalyticCenterDiscreteTime(AnalyticCenter):
 
     def _get_determinant_R(self, X):
         return linalg.det(self.system.R - self.system.B.H @ X @ self.system.B)
+
+

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import linalg
+import control
 
 from misc.misc import schur_complement, rsolve
 import logging
@@ -8,7 +9,7 @@ from functools import partial
 
 
 class DirectionAlgorithm(object):
-    debug = False
+    debug = True
     ac_object = None
     logger = logging.getLogger(__name__)
     system = None
@@ -32,22 +33,26 @@ class DirectionAlgorithm(object):
             self.logger.info("Current step: {}\tResidual: {}".format(steps_count, residual))
             self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
             self.logger.debug("Current X:\n{}".format(X))
-            if np.real(determinant) < 0:
+            det = np.real(determinant)
+            if det < 0 :
                 self.logger.critical("Something went wrong. Determinant ist negative. Aborting...")
                 raise ValueError("Something went wrong. Determinant ist negative")
 
-        X = self.initial_X()
+        X, success_init = self.initial_X()
         self.logger.debug("Initial X:\n{}".format(X))
         F, P = self.ac_object._get_F_and_P(X)
+
         determinant = linalg.det(P) * self.ac_object._get_determinant_R(X)
         A_F = (self.system.A - self.system.B @ F)
         steps_count = 0
         residual = self.ac_object.get_residual(X, P, F, A_F, self.search_direction)
         Delta_residual = float("inf")
         # ipdb.set_trace()
-        while residual > self.ac_object.tol and Delta_residual > self.ac_object.tol and steps_count < self.maxiter:
+        while residual > self.ac_object.tol and Delta_residual > self.ac_object.rel_tol and steps_count < self.maxiter:
             # ipdb.set_trace()
-
+            if self.debug:
+                self.ac_object._get_H_matrix(X)
+            ipdb.set_trace()
             print_information(steps_count, residual, determinant, X)
             R = self.ac_object._get_R(X)
             self.logger.debug("Current Determinant of R: {}".format(linalg.det(R)))
@@ -62,7 +67,14 @@ class DirectionAlgorithm(object):
             determinant = linalg.det(P) * self.ac_object._get_determinant_R(X)
             steps_count += 1
         print_information(steps_count, residual, determinant, X)
-        return X
+        self.logger.info("Finished computation...")
+        if residual <= self.ac_object.tol or Delta_residual <= self.ac_object.tol:
+            self.ac_object.center = X
+            self.ac_object.A_F = A_F
+            return (X, True)
+        else:
+
+            return (X, False)
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError("Please Implement this method")
@@ -74,8 +86,16 @@ class NewtonDirection(DirectionAlgorithm):
 
     def __call__(self):
         self.logger.info("Computing Analytic Center with Newton approach")
-        self._directional_iterative_algorithm(
+        X, success =  self._directional_iterative_algorithm(
             direction=self._get_newton_direction)
+        if success:
+            self.logger.info("Computation of Analytic center with Newton approach was successful")
+            self.logger.debug("At the analytic center A_F is:\n{}".format(self.ac_object.A_F))
+            return X
+        else:
+            self.logger.critical("Computation of Analytic center was  not successful")
+            return X
+
 
     def _get_newton_direction(self, X0, P0, R0, A_F):
         A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0, R0)
@@ -90,6 +110,9 @@ class NewtonDirection(DirectionAlgorithm):
         A_F_hat = rsolve(P0_root, (P0_root @ A_F))
         S2 = B_hat @ linalg.solve(R0, B_hat.H)  # only works in continuous time
         return A_F_hat, P0_root, S2
+
+    def _splitting_method(self, A, S, P0_root):
+        raise NotImplementedError
 
 
 class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
@@ -106,24 +129,58 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         lhs = - np.kron(A.T, A) - np.kron(np.conj(A), A.H) - np.kron(identity, AAH) - np.kron(AAH.T,
                                                                                               identity) - np.kron(
             identity, S) - np.kron(S, identity)
+
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
         Delta = linalg.solve(lhs, rhs)
         self.logger.debug("Solution Delta:\n{}".format(Delta))
         Delta = np.reshape(Delta, [n, n])
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
+
         # check if indeed solution:
+        ipdb.set_trace()
+
+
         if self.debug:
             self._check(A, S, Delta)
 
-        def _check(self, A, S, Delta):
-            res = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H - S @ Delta - Delta @ S - A - A.H
-            self.logger.debug("norm of the residual: {}".format(linalg.norm(res)))
-            det_factor = linalg.det(identity - Delta @ A - A.H @ Delta - Delta @ S @ Delta)
-            if det_factor < 1.:
-                self.logger.critical("det factor by newton step is less than 1: {}".format(det_factor))
-            else:
-                self.logger.debug("det factor by newton step: {}".format(det_factor))
+        return Delta
 
+    def _check(self, A, S, Delta):
+        AAH = A @ A.H
+        n = self.system.n
+        identity = np.identity(n)
+        res = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H - S @ Delta - Delta @ S - A - A.H
+        self.logger.debug("norm of the residual: {}".format(linalg.norm(res)))
+        det_factor = linalg.det(identity - Delta @ A - A.H @ Delta - Delta @ S @ Delta)
+        if det_factor < 1.:
+            self.logger.critical("det factor by newton step is less than 1: {}".format(det_factor))
+        else:
+            self.logger.debug("det factor by newton step: {}".format(det_factor))
+
+class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
+    maxiter_newton = 200
+    tol_newton = 10 ** -10
+
+    def __init__(self):
+        pass
+
+    def _newton_step_solver(self, A, S, P0_root):
+        alpha = 0  # TODO how to choose alpha?
+        n = self.system.n
+        identity = np.identity(n)
+        AAH = A @ A.H
+        API = A + identity
+        Delta = 0 * A
+        i = 0
+        test = self.tol_newton + 1
+        while i < self.maxiter_newton and linalg.norm(test) > self.tol_newton:
+            rhs = 2 * alpha * Delta - A @ Delta @ A - A.H @ Delta @ A.H - A - A.H
+            Delta = linalg.solve_lyapunov(AAH + S + alpha * identity, rhs)
+
+            test = - A @ Delta @ A - AAH @ Delta - A.H @ Delta @ A.H - Delta @ AAH.H - S @ Delta - Delta @ S - A - A.H
+            i += 1
+            self.logger.debug(
+                "Current value of Delta in Newton iteration:\n{}\nresidual: {}".format(Delta, linalg.norm(test)))
         return Delta
 
 
@@ -180,7 +237,6 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
         correction = -(np.real(np.trace(search_dir @ A + A.H @ search_dir)) / (np.real(
             np.trace(search_dir @ S @ search_dir)) + 0.5 * linalg.norm(
             search_dir @ A + A.H @ search_dir) ** 2))
-        ipdb.set_trace()
         return correction * search_dir
 
 
@@ -321,29 +377,51 @@ class InitialX(DirectionAlgorithm):
         if InitialX.X0 is None:
             self.logger.info('Computing initial X')
 
-            X_plus = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R)
+            X_plus = -self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
+                                         np.identity(self.system.n))
             Am = -self.system.A
-            Bm = -self.system.B
-            X_minus = linalg.solve_continuous_are(Am, Bm, self.system.Q, self.system.R)
+            Bm = self.system.B
+            Sm = self.system.S
+            Qm = -self.system.Q
+            Rm = -self.system.R
+            X_minus = -self.riccati_solver(Am, Bm, Qm, Rm, Sm,
+                                          np.identity(self.system.n))
+
+            if np.isclose(linalg.norm(X_plus-X_minus), 0):
+                self.logger.critical("X_+ and X_- are (almost) identical: No interior!")
+            self.logger.debug("Eigenvalues of X_plus: {}".format(linalg.eigh(X_plus)[0]))
+            self.logger.debug("Eigenvalues of H(X_plus): {}".format(linalg.eigh(self.ac_object._get_H_matrix(X_plus))[0]))
+            self.logger.debug("Eigenvalues of X_minus: {}".format(linalg.eigh(X_minus)[0]))
+            self.logger.debug("Eigenvalues of H(X_minus): {}".format(linalg.eigh(self.ac_object._get_H_matrix(X_minus))[0]))
+            if self.debug:
+                self.ac_object._get_Hamiltonian()
+            # ipdb.set_trace()
             newton_direction = self.newton_direction
-            self.search_direction = (X_minus + X_plus)
+            self.search_direction = 0.5 * (X_minus + X_plus)
+            self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(self.search_direction)[0]))
+            self.logger.debug(
+                "Eigenvalues of H(X_init_guess): {}".format(linalg.eigh(self.ac_object._get_H_matrix(self.search_direction))[0]))
             newton_direction.search_direction = self.search_direction
-            InitialX.X0 = -0.5 * self.search_direction  # We use negative definite notion of solutions for Riccati equation
+            InitialX.X0 = self.search_direction  # We use negative definite notion of solutions for Riccati equation
             self.logger.info("Improving Initial X with Newton approach")
 
             # ipdb.set_trace()
-            Xinit = self._directional_iterative_algorithm(direction=newton_direction._get_newton_direction)
+            Xinit, success = self._directional_iterative_algorithm(direction=newton_direction._get_newton_direction)
+
+            if not success:
+                self.logger.critical("Computation of initial X failed.")
+            else:
+                self.logger.debug("Eigenvalues of X_init: {}".format(linalg.eigh(Xinit)[0]))
+                self.logger.debug(
+                    "Eigenvalues of H(X_init): {}".format(linalg.eigh(self.ac_object._get_H_matrix(Xinit))[0]))
 
         else:
-            self.logger.info("initial X is already set")
+            self.logger.info("Initial X is already set")
             Xinit = self.X0
-
-        return Xinit
-
-
+        return Xinit, True
 class InitialXCT(InitialX):
     newton_direction = NewtonDirectionOneDimensionCT()
-    riccati_solver = staticmethod(linalg.solve_continuous_are)
+    riccati_solver = staticmethod(lambda *args: control.care(*args)[0])
 
     def __init__(self):
         pass
@@ -351,7 +429,7 @@ class InitialXCT(InitialX):
 
 class InitialXDT(InitialX):
     newton_direction = NewtonDirectionOneDimensionDT()
-    riccati_solver = staticmethod(linalg.solve_discrete_are)
+    riccati_solver = staticmethod(lambda *args: control.dare(*args)[0])
 
     def __init__(self):
         pass

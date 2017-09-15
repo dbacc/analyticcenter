@@ -1,6 +1,7 @@
-from analyticcenter.linearsystem import OptimalControlSystem
 import numpy as np
 from scipy import linalg
+import logging
+logger = logging.getLogger()
 
 
 
@@ -17,22 +18,16 @@ def schur_complement(X, n, mode='upper'):
     return complement
 
 
-def generate_random_sys_and_save(m, n):
-    while True:
-        A = np.random.rand(n, n)
-        B = np.random.rand(n, m)
-        C = np.random.rand(m, n)
-        D = np.random.rand(m, m)
-        Q = np.random.rand(n, n)
-        Q = Q @ Q.T
-        S = 0.01 * np.random.rand(n, m)
-        R = np.random.rand(m, m)
-        R = R @ R.T
-        sys = OptimalControlSystem(A, B, C, D, Q, S, R)
-        alg = AnalyticCenter(sys, 10 ** (-3))
-        if sys._check_positivity(sys.H0):
-            continue
-        if sys._check_positivity(alg._get_H_matrix(alg._get_initial_X())):
-            break
-
-    sys.save()
+def check_positivity(M, M_name=""):
+    logger.debug("Checking positive definiteness for matrix {}:\n{}".format(M_name, M))
+    try:
+        linalg.cholesky(M)
+        logger.debug('Matrix {} is non-negative'.format(M_name))
+        return True
+    except linalg.LinAlgError as err:
+        lmin = np.min(linalg.eigh(M)[0])
+        if lmin >=0 or np.isclose(lmin,0):
+            logger.warning('Matrix {} seems to be non-negative, but Cholesky factorization failed due to roundoff errors'.format(M_name))
+        else:
+            logger.critical('Matrix {} is not non-negative'.format(M_name))
+        return False
