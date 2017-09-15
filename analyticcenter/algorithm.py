@@ -18,7 +18,7 @@ class AnalyticCenter(object):
     """ToDo"""
     debug = True
     logger = logging.getLogger(__name__)
-    rel_tol = 1.e-16
+    rel_tol = 1.e-30
     def __init__(self, system, tol, discrete_time):
         self.system = system
         self.X0 = None

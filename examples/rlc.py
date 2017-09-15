@@ -5,6 +5,9 @@ from analyticcenter.linearsystem import OptimalControlSystem
 RR = 100.  # Resistor Value
 L = 0.1e-1  # Inductance
 C = 1.e-1 # Capacitor
+# RR = 1.  # Resistor Value
+# L = 1.  # Inductance
+# C = 1. # Capacitor
 
 p = 0  # Number of systems to connect
 
@@ -25,7 +28,7 @@ sys = control.tf2ss(ss)
 A = sys.A
 B = sys.B
 C = np.asmatrix(sys.C)
-D = np.asmatrix(sys.D) + 0.1
+D = np.asmatrix(sys.D) + 1
 
 
 # D = np.matrix([1])

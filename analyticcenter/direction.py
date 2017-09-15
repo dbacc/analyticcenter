@@ -129,6 +129,7 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         lhs = - np.kron(A.T, A) - np.kron(np.conj(A), A.H) - np.kron(identity, AAH) - np.kron(AAH.T,
                                                                                               identity) - np.kron(
             identity, S) - np.kron(S, identity)
+
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
         Delta = linalg.solve(lhs, rhs)
         self.logger.debug("Solution Delta:\n{}".format(Delta))
@@ -136,11 +137,12 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
 
         # check if indeed solution:
-
+        ipdb.set_trace()
 
 
         if self.debug:
             self._check(A, S, Delta)
+
         return Delta
 
     def _check(self, A, S, Delta):

@@ -21,7 +21,7 @@ def load_config():
 if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
-    from examples.rlc import sys
+    from examples.example4 import sys
     alg = get_analytic_center_object(sys, 10 ** (-8), discrete_time=False)
     direction_method = NewtonDirectionMultipleDimensionsCT()
     direction_method()
