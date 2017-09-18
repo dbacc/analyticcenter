@@ -403,6 +403,7 @@ class InitialX(DirectionAlgorithm):
                 "Eigenvalues of H(X_init_guess): {}".format(linalg.eigh(self.ac_object._get_H_matrix(self.search_direction))[0]))
             newton_direction.search_direction = self.search_direction
             InitialX.X0 = self.search_direction  # We use negative definite notion of solutions for Riccati equation
+            ipdb.set_trace()
             self.logger.info("Improving Initial X with Newton approach")
 
             # ipdb.set_trace()

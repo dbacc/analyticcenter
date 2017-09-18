@@ -3,7 +3,7 @@ from scipy import linalg
 import logging
 import control
 import misc.misc as misc
-
+import scipy.io
 
 class LTI(object):
     """Describes an LTI system"""
@@ -32,6 +32,9 @@ class OptimalControlSystem(LTI):
 
     def save(self):
         np.save('example-n-{}-m-{}'.format(self.n, self.m), [self.A, self.B, self.C, self.D, self.Q, self.S, self.R])
+
+    def save_mat(self):
+        scipy.io.savemat('example-n-{}-m-{}'.format(self.n, self.m), { "A": self.A, "B": self.B,"C": self.C, "D": self.D, "Q":self.Q, "S":self.S, "R": self.R})
 
     def __initH0(self):
         self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
