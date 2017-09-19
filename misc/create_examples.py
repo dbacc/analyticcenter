@@ -76,3 +76,26 @@ def generate_random_sys_and_save_3(m, n):
             break
 
     sys.save()
+
+def generate_pH_sys_and_save(n,m):
+    dim = n+m
+    R = np.asmatrix(np.random.random((dim,dim)))
+    H = R.T @ R
+    A = -0.5 * H[:n, :n]
+    B = - 0.5 * H[:n,n:]
+    C = - B.T
+    D = 0.5 * H[n:, n:]
+    R = D + D.T
+    import ipdb
+    ipdb.set_trace()
+    sys = OptimalControlSystem(A, B, C, D, np.zeros((n,n)), C.H, D + D.T)
+    Xm = control.care(A, B, np.zeros((n,n)), R, C.H, np.identity(n))[0]
+    Xp = control.care(-A, B, np.zeros((n,n)), -(D + D.T), C.H,np.identity(n))[0]
+    alg = get_analytic_center_object(sys, 10 ** (-3))
+
+    check_positivity(-Xm)
+    check_positivity(-Xp)
+
+
+
+    sys.save()

@@ -5,7 +5,7 @@ from scipy import linalg
 
 from analyticcenter.direction import DirectionAlgorithm
 import misc.misc as misc
-
+import ipdb
 
 def get_analytic_center_object(system, tol, discrete_time=False):
     if discrete_time:
@@ -118,6 +118,7 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
         Ricc = self.system.Q - self.system.A.H @ X - X @ self.system.A
+        ipdb.set_trace()
         if F is None:
             Ricc -= - RF.H @ linalg.solve(self.system.R, RF)
         else:
