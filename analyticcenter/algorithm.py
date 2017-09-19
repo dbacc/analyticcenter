@@ -118,9 +118,8 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
         Ricc = self.system.Q - self.system.A.H @ X - X @ self.system.A
-        ipdb.set_trace()
         if F is None:
-            Ricc -= - RF.H @ linalg.solve(self.system.R, RF)
+            Ricc -= RF.H @ linalg.solve(self.system.R, RF)
         else:
             Ricc -= F.H @ self.system.R @ F
         return Ricc
