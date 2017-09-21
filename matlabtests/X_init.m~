@@ -1,0 +1,16 @@
+function [ X, alpha ] = X_init( A,B,Q,R,S, Xm, Xp )
+%UNTITLED Summary of this function goes here
+%   Detailed explanation goes here
+alpha = 1;
+
+for i = 1:10
+   alpha = 0.5 * alpha; 
+   X = alpha* Xp + (1-alpha)* Xm;
+   if min(eig(H(A,B,Q,R,S,X))) > 1.1
+       break
+   end
+end
+
+
+end
+
