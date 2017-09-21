@@ -6,7 +6,7 @@ from scipy.signal import cheby2
 
 
 
-num, den = cheby2(6,30, [1000,200000], analog=True)
+num, den = cheby2(6,30, 100, analog=True)
 tf = control.tf(num, den)
 
 ss = tf

@@ -94,10 +94,10 @@ class NewtonDirection(DirectionAlgorithm):
         if success:
             self.logger.info("Computation of Analytic center with Newton approach was successful")
             self.logger.debug("At the analytic center A_F is:\n{}\nwith eigenvalues: {}".format(self.ac_object.A_F, linalg.eig(self.ac_object.A_F)[0]))
-            return X
+            return X, success
         else:
             self.logger.critical("Computation of Analytic center was  not successful")
-            return X
+            return X, success
 
 
     def _get_newton_direction(self, X0, P0, R0, A_F):

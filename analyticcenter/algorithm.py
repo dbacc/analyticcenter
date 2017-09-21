@@ -8,6 +8,7 @@ import misc.misc as misc
 import ipdb
 from misc.control import place
 import control
+from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, AnalyticCenterUnstable, AnalyticCenterRiccatiSolutionFailed
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class AnalyticCenter(object):
     debug = True
     logger = logging.getLogger(__name__)
 
-    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-10, discrete_time=False):
+    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-8, discrete_time=False):
         self.system = system
         self.X0 = None
         self.H0 = None
@@ -95,7 +96,7 @@ class AnalyticCenter(object):
             return True
         else:
             self.logger.critical("System is not stable. Aborting.")
-            raise BaseException("System is not stable.")
+            raise AnalyticCenterUnstable("System is not stable.")
             return False
 
     def check_controllability(self):
@@ -103,22 +104,28 @@ class AnalyticCenter(object):
         F, nup = place(self.system.A, self.system.B, poles)
         if nup > 0:
             self.logger.critical("System is not controllable. Aborting.")
-            raise BaseException("System is not stable.")
+            raise AnalyticCenterUncontrollable("System is not controllable.")
             return False
         else:
             self.logger.info("System is controllable.")
             return True
 
     def check_passivity(self):
-        ricc = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
+        try:
+            ricc = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
                                    np.identity(self.system.n))
-        X = - ricc[0]
 
-        if misc.check_positivity(self._get_H_matrix(X), 'X'):
-            self.logger.info("System is passive, if also stable")
-        else:
-            self.logger.critical("System cannot be stabilized (in particular unstable)")
-            raise BaseException("System cannot be stabilized (in particular unstable)")
+
+            X = - ricc[0]
+
+            if misc.check_positivity(self._get_H_matrix(X), 'X'):
+                self.logger.info("System is passive, if also stable")
+            else:
+                self.logger.critical("System is not passive")
+                raise AnalyticCenterNotPassive("System is not passive")
+        except ValueError as e:
+            self.logger.critical("Riccati solver for passivity check did not succeed with message:\n{}".format(e.args[0]))
+            raise AnalyticCenterRiccatiSolutionFailed("Riccati solver for passivity check did not succeed")
 
 
 class AnalyticCenterContinuousTime(AnalyticCenter):

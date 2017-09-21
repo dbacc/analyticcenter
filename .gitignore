@@ -1,3 +1,5 @@
+dist
+*.egg-info
 .cache
 .nfs
 __pychache__

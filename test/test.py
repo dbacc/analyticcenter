@@ -1,27 +1,34 @@
-import inspect
-import os
-
-import yaml
+import pytest
 
 from analyticcenter.algorithm import get_analytic_center_object
-from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT
-
-from logger import prepare_logger
-
-from examples.example1 import sys
-from examples.rlc import sys as sys2
-
+from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT, NewtonDirectionMultipleDimensionsDT
+from analyticcenter.exceptions import AnalyticCenterUnstable, AnalyticCenterNotPassive, AnalyticCenterRiccatiSolutionFailed
+from examples.rlc import sys as sysrlc
+from test.test_examples.example1 import sys
+from examples.cheby_filter import sys as syscheby
 
 
-def test_1():
-    alg = get_analytic_center_object(sys, 10 ** (-8), discrete_time=False)
+def test_unstable_ct():
+    with pytest.raises(AnalyticCenterUnstable):
+        alg = get_analytic_center_object(sys, discrete_time=False)
+        direction_method = NewtonDirectionMultipleDimensionsCT()
+        (X, success) = direction_method()
+
+def test_unstable_dt():
+    with pytest.raises(AnalyticCenterUnstable):
+        alg = get_analytic_center_object(sys, discrete_time=True)
+        direction_method = NewtonDirectionMultipleDimensionsDT()
+        (X, success) = direction_method()
+
+
+def test_2():
+    alg = get_analytic_center_object(sysrlc, discrete_time=False)
     direction_method = NewtonDirectionMultipleDimensionsCT()
     (X, success) = direction_method()
     assert success
 
-
-def test_1():
-    alg = get_analytic_center_object(sys2, 10 ** (-8), discrete_time=False)
-    direction_method = NewtonDirectionMultipleDimensionsCT()
-    (X, success) = direction_method()
-    assert success
+def test_cheby_no_riccati_solution():
+    with pytest.raises(AnalyticCenterRiccatiSolutionFailed):
+        alg = get_analytic_center_object(syscheby, discrete_time=False)
+        direction_method = NewtonDirectionMultipleDimensionsCT()
+        (X, success) = direction_method()
