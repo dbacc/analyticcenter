@@ -4,6 +4,8 @@ import logging
 import control
 import misc.misc as misc
 import scipy.io
+from misc.control import place
+
 
 class LTI(object):
     """Describes an LTI system"""
@@ -34,11 +36,33 @@ class OptimalControlSystem(LTI):
         np.save('example-n-{}-m-{}'.format(self.n, self.m), [self.A, self.B, self.C, self.D, self.Q, self.S, self.R])
 
     def save_mat(self):
-        scipy.io.savemat('example-n-{}-m-{}'.format(self.n, self.m), { "A": self.A, "B": self.B,"C": self.C, "D": self.D, "Q":self.Q, "S":self.S, "R": self.R})
+        scipy.io.savemat('example-n-{}-m-{}'.format(self.n, self.m),
+                         {"A": self.A, "B": self.B, "C": self.C, "D": self.D, "Q": self.Q, "S": self.S, "R": self.R})
 
     def __initH0(self):
         self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
 
+    def check_stability(self):
+        eigs = np.linalg.eig(self.system.A)[0]
+        real = np.real(eigs)
+        if np.max(real) < 0:
+            self.logger.info("System is stable")
+            return True
+        else:
+            self.logger.critical("System is not stable. Aborting.")
+            raise BaseException("System is not stable.")
+            return False
+
+    def check_controllability(self):
+        poles = np.random.rand(self.n)
+        F, nup = place(self.A, self.B, poles)
+        if nup >0:
+            self.logger.critical("System is not controllable. Aborting.")
+            raise BaseException("System is not stable.")
+            return False
+        else:
+            self.logger.info("System is controllable.")
+            return True
 
 
     def check_passivity(self):

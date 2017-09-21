@@ -48,6 +48,7 @@ class DirectionAlgorithm(object):
         residual = self.ac_object.get_residual(X, P, F, A_F, self.search_direction)
         Delta_residual = float("inf")
         # ipdb.set_trace()
+        alpha = 0.8
         while residual > self.ac_object.tol and Delta_residual > self.ac_object.rel_tol and steps_count < self.maxiter:
             # ipdb.set_trace()
             if self.debug:
@@ -56,9 +57,10 @@ class DirectionAlgorithm(object):
             print_information(steps_count, residual, determinant, X)
             R = self.ac_object._get_R(X)
             self.logger.debug("Current Determinant of R: {}".format(linalg.det(R)))
+
             Delta_X = direction(X, P, R, A_F)
             Delta_residual = linalg.norm(Delta_X)
-            X = X + Delta_X
+            X = X + alpha * Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
 
             F, P = self.ac_object._get_F_and_P(X)
@@ -101,6 +103,7 @@ class NewtonDirection(DirectionAlgorithm):
         A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0, R0)
 
         Delta_X_hat = self._newton_step_solver(A_F_hat, S2, P0_root)
+        ipdb.set_trace()
         Delta_X = P0_root @ Delta_X_hat @ P0_root
         return Delta_X
 
@@ -137,10 +140,11 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
 
         # check if indeed solution:
-        ipdb.set_trace()
+        # ipdb.set_trace()
 
 
         if self.debug:
+
             self._check(A, S, Delta)
 
         return Delta
@@ -397,13 +401,13 @@ class InitialX(DirectionAlgorithm):
                 self.ac_object._get_Hamiltonian()
             # ipdb.set_trace()
             newton_direction = self.newton_direction
-            self.search_direction = 0.5 * (X_minus + X_plus)
+            self.search_direction = X_minus @ linalg.sqrtm( linalg.solve(X_minus, X_plus))
             self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(self.search_direction)[0]))
             self.logger.debug(
                 "Eigenvalues of H(X_init_guess): {}".format(linalg.eigh(self.ac_object._get_H_matrix(self.search_direction))[0]))
             newton_direction.search_direction = self.search_direction
             InitialX.X0 = self.search_direction  # We use negative definite notion of solutions for Riccati equation
-            ipdb.set_trace()
+            # ipdb.set_trace()
             self.logger.info("Improving Initial X with Newton approach")
 
             # ipdb.set_trace()
