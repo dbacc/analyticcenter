@@ -18,7 +18,7 @@ def generate_random_sys_and_save(m, n):
         R = np.random.rand(m, m)
         R = R @ R.T
         sys = OptimalControlSystem(A, B, C, D, Q, S, R)
-        alg = AnalyticCenter(sys, 10 ** (-3))
+        alg = get_analytic_center_object(sys, 10 ** (-3))
         if sys._check_positivity(sys.H0):
             continue
         if sys._check_positivity(alg._get_H_matrix(alg._get_initial_X())):
@@ -43,7 +43,7 @@ def generate_random_sys_and_save_2(m, n):
 
 
         sys = OptimalControlSystem(ss.A, ss.B, ss.C, ss.D, np.zeros(n,n), ss.C.H, ss.D + ss.D.H)
-        alg = AnalyticCenter(sys, 10 ** (-3))
+        alg = get_analytic_center_object(sys, 10 ** (-3))
         if sys._check_positivity(sys.H0):
             continue
         if sys._check_positivity(alg._get_H_matrix(alg._get_initial_X())):
@@ -86,15 +86,13 @@ def generate_pH_sys_and_save(n,m):
     C = - B.T
     D = 0.5 * H[n:, n:]
     R = D + D.T
-    import ipdb
-    ipdb.set_trace()
     sys = OptimalControlSystem(A, B, C, D, np.zeros((n,n)), C.H, D + D.T)
-    Xm = control.care(A, B, np.zeros((n,n)), R, C.H, np.identity(n))[0]
-    Xp = control.care(-A, B, np.zeros((n,n)), -(D + D.T), C.H,np.identity(n))[0]
+    # Xm = control.care(A, B, np.zeros((n,n)), R, C.H, np.identity(n))[0]
+    # Xp = control.care(-A, B, np.zeros((n,n)), -(D + D.T), C.H,np.identity(n))[0]
     alg = get_analytic_center_object(sys, 10 ** (-3))
-
-    check_positivity(-Xm)
-    check_positivity(-Xp)
+    #
+    # check_positivity(-Xm)
+    # check_positivity(-Xp)
 
 
 

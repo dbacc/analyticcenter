@@ -6,6 +6,9 @@ from scipy import linalg
 from analyticcenter.direction import DirectionAlgorithm
 import misc.misc as misc
 import ipdb
+from misc.control import place
+import control
+
 
 def get_analytic_center_object(system, tol, discrete_time=False):
     if discrete_time:
@@ -19,6 +22,7 @@ class AnalyticCenter(object):
     debug = True
     logger = logging.getLogger(__name__)
     rel_tol = 1.e-30
+
     def __init__(self, system, tol, discrete_time):
         self.system = system
         self.X0 = None
@@ -28,6 +32,9 @@ class AnalyticCenter(object):
         self.maxiter = 100
         self.__init_H0()
         self.debug = True
+        self.check_stability()
+        self.check_controllability()
+        self.check_passivity()
         DirectionAlgorithm(self, self.discrete_time)
 
     def __init_H0(self):
@@ -35,16 +42,6 @@ class AnalyticCenter(object):
 
     def _get_Delta_H(self, Delta_X):
         return self._get_H_matrix(Delta_X) - self.H0
-
-    def det_direction_plot(self, X, Delta_X):
-        self.logger.debug("Creating det direction plot...")
-        alpha = np.linspace(-1., 1., 10000)
-        det_alpha = [linalg.det(self.riccati_operator(X + val * Delta_X)) for val in alpha]
-        # ipdb.set_trace()
-        plt.plot(alpha, det_alpha)
-        self.logger.debug("Maximum reached at alpha = {}".format(alpha[np.argmax(det_alpha)]))
-        # plt.show()
-        return alpha[np.argmax(det_alpha)]
 
     def gradient_sweep(self, X):
         H = self._get_H_matrix(X)
@@ -82,10 +79,46 @@ class AnalyticCenter(object):
     def _get_determinant_R(self, X):
         raise NotImplementedError
 
+    def _eig_stable(self):
+        raise NotImplementedError
+
+    def check_stability(self):
+        eigs = np.linalg.eig(self.system.A)[0]
+        if self._eig_stable(eigs):
+            self.logger.info("System is stable")
+            return True
+        else:
+            self.logger.critical("System is not stable. Aborting.")
+            raise BaseException("System is not stable.")
+            return False
+
+    def check_controllability(self):
+        poles = np.random.rand(self.system.n)
+        F, nup = place(self.system.A, self.system.B, poles)
+        if nup > 0:
+            self.logger.critical("System is not controllable. Aborting.")
+            raise BaseException("System is not stable.")
+            return False
+        else:
+            self.logger.info("System is controllable.")
+            return True
+
+    def check_passivity(self):
+        ricc = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
+                                   np.identity(self.system.n))
+        X = - ricc[0]
+
+        if misc.check_positivity(self._get_H_matrix(X), 'X'):
+            self.logger.info("System is passive, if also stable")
+        else:
+            self.logger.critical("System cannot be stabilized (in particular unstable)")
+            raise BaseException("System cannot be stabilized (in particular unstable)")
+
 
 class AnalyticCenterContinuousTime(AnalyticCenter):
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = False
+    riccati_solver = staticmethod(control.care)
 
     def __init__(self, system, tol):
         super().__init__(system, tol, False)
@@ -105,7 +138,7 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
         P = self.riccati_operator(X, F)
         return F, P
 
-    def get_residual(self, X, P, F, A_F, Delta = None):
+    def get_residual(self, X, P, F, A_F, Delta=None):
 
         res = P @ A_F
         res = res + res.H
@@ -141,12 +174,17 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
         RinvSH = linalg.solve(R, S.H)
         H1 = A - B @ RinvSH
         Ham = np.bmat([[H1, - B @ linalg.solve(R, B.H)],
-                               [-Q + S @ RinvSH, -H1.H]])
+                       [-Q + S @ RinvSH, -H1.H]])
         self.logger.debug("Eigenvalues of the Hamiltonian:\n{}".format(linalg.eig(Ham)[0]))
+
+    def _eig_stable(self, eigs):
+        return np.max(np.real(eigs)) < 0
+
 
 class AnalyticCenterDiscreteTime(AnalyticCenter):
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = True
+    riccati_solver = staticmethod(control.dare)
 
     def __init__(self, system, tol):
         super().__init__(system, tol, True)
@@ -193,4 +231,5 @@ class AnalyticCenterDiscreteTime(AnalyticCenter):
     def _get_determinant_R(self, X):
         return linalg.det(self.system.R - self.system.B.H @ X @ self.system.B)
 
-
+    def _eig_stable(self, eigs):
+        return np.max(np.abs(eigs)) < 1

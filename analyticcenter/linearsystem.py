@@ -4,7 +4,7 @@ import logging
 import control
 import misc.misc as misc
 import scipy.io
-from misc.control import place
+
 
 
 class LTI(object):
@@ -30,7 +30,7 @@ class OptimalControlSystem(LTI):
         self.S = np.asmatrix(S)
         self.R = np.asmatrix(R)
         self.__initH0()
-        misc.check_positivity(self.H0, "H_0")
+
 
     def save(self):
         np.save('example-n-{}-m-{}'.format(self.n, self.m), [self.A, self.B, self.C, self.D, self.Q, self.S, self.R])
@@ -42,33 +42,3 @@ class OptimalControlSystem(LTI):
     def __initH0(self):
         self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
 
-    def check_stability(self):
-        eigs = np.linalg.eig(self.system.A)[0]
-        real = np.real(eigs)
-        if np.max(real) < 0:
-            self.logger.info("System is stable")
-            return True
-        else:
-            self.logger.critical("System is not stable. Aborting.")
-            raise BaseException("System is not stable.")
-            return False
-
-    def check_controllability(self):
-        poles = np.random.rand(self.n)
-        F, nup = place(self.A, self.B, poles)
-        if nup >0:
-            self.logger.critical("System is not controllable. Aborting.")
-            raise BaseException("System is not stable.")
-            return False
-        else:
-            self.logger.info("System is controllable.")
-            return True
-
-
-    def check_passivity(self):
-        ricc = control.care(self.A, self.B, self.Q, self.R, self.S, np.identity(self.n))
-        if misc.check_positivity(ricc[0], 'X'):
-            self.logger.info("System is passive, if also stable")
-        else:
-            self.logger.critical("System cannot be stabilized (in particular unstable)")
-            raise BaseException("System cannot be stabilized (in particular unstable)")

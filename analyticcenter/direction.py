@@ -48,12 +48,12 @@ class DirectionAlgorithm(object):
         residual = self.ac_object.get_residual(X, P, F, A_F, self.search_direction)
         Delta_residual = float("inf")
         # ipdb.set_trace()
-        alpha = 0.8
+        alpha = 1.
         while residual > self.ac_object.tol and Delta_residual > self.ac_object.rel_tol and steps_count < self.maxiter:
             # ipdb.set_trace()
             if self.debug:
                 self.ac_object._get_H_matrix(X)
-            ipdb.set_trace()
+            # ipdb.set_trace()
             print_information(steps_count, residual, determinant, X)
             R = self.ac_object._get_R(X)
             self.logger.debug("Current Determinant of R: {}".format(linalg.det(R)))
@@ -92,7 +92,7 @@ class NewtonDirection(DirectionAlgorithm):
             direction=self._get_newton_direction)
         if success:
             self.logger.info("Computation of Analytic center with Newton approach was successful")
-            self.logger.debug("At the analytic center A_F is:\n{}".format(self.ac_object.A_F))
+            self.logger.debug("At the analytic center A_F is:\n{}\nwith eigenvalues: {}".format(self.ac_object.A_F, linalg.eig(self.ac_object.A_F)[0]))
             return X
         else:
             self.logger.critical("Computation of Analytic center was  not successful")
@@ -103,7 +103,7 @@ class NewtonDirection(DirectionAlgorithm):
         A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0, R0)
 
         Delta_X_hat = self._newton_step_solver(A_F_hat, S2, P0_root)
-        ipdb.set_trace()
+        # ipdb.set_trace()
         Delta_X = P0_root @ Delta_X_hat @ P0_root
         return Delta_X
 
