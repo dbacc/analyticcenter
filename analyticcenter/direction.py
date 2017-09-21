@@ -49,7 +49,8 @@ class DirectionAlgorithm(object):
         Delta_residual = float("inf")
         # ipdb.set_trace()
         alpha = 1.
-        while residual > self.ac_object.tol and Delta_residual > self.ac_object.rel_tol and steps_count < self.maxiter:
+        # ipdb.set_trace()
+        while residual > self.ac_object.abs_tol and Delta_residual > self.ac_object.rel_tol and steps_count < self.maxiter:
             # ipdb.set_trace()
             if self.debug:
                 self.ac_object._get_H_matrix(X)
@@ -70,7 +71,7 @@ class DirectionAlgorithm(object):
             steps_count += 1
         print_information(steps_count, residual, determinant, X)
         self.logger.info("Finished computation...")
-        if residual <= self.ac_object.tol or Delta_residual <= self.ac_object.tol:
+        if residual <= self.ac_object.abs_tol or Delta_residual <= self.ac_object.rel_tol:
             self.ac_object.center = X
             self.ac_object.A_F = A_F
             return (X, True)

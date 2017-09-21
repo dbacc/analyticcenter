@@ -9,26 +9,32 @@ import ipdb
 from misc.control import place
 import control
 
+logger = logging.getLogger(__name__)
 
-def get_analytic_center_object(system, tol, discrete_time=False):
+
+def get_analytic_center_object(*args, **kwargs):
+    discrete_time = kwargs.get('discrete_time')
+    if discrete_time is None:
+        discrete_time = False
+        logger.warning("No system type given. Defaulting to continuous time.")
     if discrete_time:
-        return AnalyticCenterDiscreteTime(system, tol)
+        return AnalyticCenterDiscreteTime(*args, **kwargs)
     else:
-        return AnalyticCenterContinuousTime(system, tol)
+        return AnalyticCenterContinuousTime(*args, **kwargs)
 
 
 class AnalyticCenter(object):
     """ToDo"""
     debug = True
     logger = logging.getLogger(__name__)
-    rel_tol = 1.e-30
 
-    def __init__(self, system, tol, discrete_time):
+    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-10, discrete_time=False):
         self.system = system
         self.X0 = None
         self.H0 = None
         self.H = None
-        self.tol = tol
+        self.abs_tol = abs_tol
+        self.rel_tol = rel_tol
         self.maxiter = 100
         self.__init_H0()
         self.debug = True
@@ -120,8 +126,8 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
     discrete_time = False
     riccati_solver = staticmethod(control.care)
 
-    def __init__(self, system, tol):
-        super().__init__(system, tol, False)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._determinant_R = None
 
     def _get_H_matrix(self, X: np.matrix):
@@ -186,8 +192,8 @@ class AnalyticCenterDiscreteTime(AnalyticCenter):
     discrete_time = True
     riccati_solver = staticmethod(control.dare)
 
-    def __init__(self, system, tol):
-        super().__init__(system, tol, True)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def _get_H_matrix(self, X: np.matrix):
         A = self.system.A
