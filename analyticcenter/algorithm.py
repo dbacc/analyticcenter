@@ -19,12 +19,12 @@ def get_analytic_center_object(*args, **kwargs):
         discrete_time = False
         logger.warning("No system type given. Defaulting to continuous time.")
     if discrete_time:
-        return AnalyticCenterDiscreteTime(*args, **kwargs)
+        return AlgorithmDiscreteTime(*args, **kwargs)
     else:
-        return AnalyticCenterContinuousTime(*args, **kwargs)
+        return AlgorithmContinuousTime(*args, **kwargs)
 
 
-class AnalyticCenter(object):
+class Algorithm(object):
     """ToDo"""
     debug = True
     logger = logging.getLogger(__name__)
@@ -128,7 +128,7 @@ class AnalyticCenter(object):
             raise AnalyticCenterRiccatiSolutionFailed("Riccati solver for passivity check did not succeed")
 
 
-class AnalyticCenterContinuousTime(AnalyticCenter):
+class AlgorithmContinuousTime(Algorithm):
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = False
     riccati_solver = staticmethod(control.care)
@@ -194,7 +194,7 @@ class AnalyticCenterContinuousTime(AnalyticCenter):
         return np.max(np.real(eigs)) < 0
 
 
-class AnalyticCenterDiscreteTime(AnalyticCenter):
+class AlgorithmDiscreteTime(Algorithm):
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = True
     riccati_solver = staticmethod(control.dare)
