@@ -408,6 +408,7 @@ class InitialX(DirectionAlgorithm):
             # ipdb.set_trace()
             newton_direction = self.newton_direction
             self.search_direction = X_minus @ linalg.sqrtm(linalg.solve(X_minus, X_plus))
+            # ipdb.set_trace()
             self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(self.search_direction)[0]))
             self.logger.debug(
                 "Eigenvalues of H(X_init_guess): {}".format(

@@ -2,9 +2,10 @@ import pytest
 
 from analyticcenter.algorithm import get_analytic_center_object
 from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT, NewtonDirectionMultipleDimensionsDT
-from analyticcenter.exceptions import AnalyticCenterUnstable, AnalyticCenterNotPassive, AnalyticCenterRiccatiSolutionFailed
+from analyticcenter.exceptions import AnalyticCenterUnstable, AnalyticCenterNotPassive, AnalyticCenterRiccatiSolutionFailed, AnalyticCenterUncontrollable
 from examples.rlc import sys as sysrlc
 from test.test_examples.example1 import sys
+from test.test_examples.example4 import sys as sysuncontrollable
 from examples.cheby_filter import sys as syscheby
 
 
@@ -20,6 +21,11 @@ def test_unstable_dt():
         direction_method = NewtonDirectionMultipleDimensionsDT()
         (X, success) = direction_method()
 
+def test_uncontrollable_ct():
+    with pytest.raises(AnalyticCenterUncontrollable):
+        alg = get_analytic_center_object(sysuncontrollable, discrete_time=False)
+        direction_method = NewtonDirectionMultipleDimensionsCT()
+        (X, success) = direction_method()
 
 def test_2():
     alg = get_analytic_center_object(sysrlc, discrete_time=False)

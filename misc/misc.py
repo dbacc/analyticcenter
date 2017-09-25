@@ -6,6 +6,9 @@ logger = logging.getLogger()
 
 
 def rsolve(*args, **kwargs):
+    """Computes the left inverse.
+    
+    rsolve(A,B) = solve(A.H, B.H).H = (inv(A.H) @ B.H).H = B @ inv(A)"""
     return np.asmatrix(linalg.solve(np.asmatrix(args[0]).H, np.asmatrix(args[1]).H, kwargs)).H
 
 

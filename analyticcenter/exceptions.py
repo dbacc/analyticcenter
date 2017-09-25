@@ -1,5 +1,4 @@
 class AnalyticCenterUnstable(BaseException):
-
     pass
 
 
@@ -9,8 +8,6 @@ class AnalyticCenterUncontrollable(BaseException):
 
 class AnalyticCenterNotPassive(BaseException):
     pass
-
-
 
 
 class AnalyticCenterRiccatiSolutionFailed(BaseException):

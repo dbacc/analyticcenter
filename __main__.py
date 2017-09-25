@@ -5,8 +5,8 @@ import yaml
 
 from analyticcenter.algorithm import get_analytic_center_object
 from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT
-
 from logger import prepare_logger
+
 
 # from examples.example3 import sys
 
@@ -21,7 +21,7 @@ def load_config():
 if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
-    from examples.rlc import sys
+    from examples.example2 import sys
     alg = get_analytic_center_object(sys, discrete_time=False)
     direction_method = NewtonDirectionMultipleDimensionsCT()
-    direction_method()
+    (ac, success) = direction_method()
