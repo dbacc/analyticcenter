@@ -101,8 +101,8 @@ class Algorithm(object):
 
     def check_controllability(self):
         poles = np.random.rand(self.system.n)
-        F, nup = place(self.system.A, self.system.B, poles)
-        if nup > 0:
+        F, nup, warn = place(self.system.A, self.system.B, poles)
+        if nup > 0 or warn != 0:
             self.logger.critical("System is not controllable. Aborting.")
             raise AnalyticCenterUncontrollable("System is not controllable.")
             return False
