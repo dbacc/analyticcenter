@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg as linalg
 import logging
 from misc.misc import rsolve
+from slycot import ab13fd
 
 class AnalyticCenter(object):
     def __init__(self, X, A_F, HX, algorithm=None, discrete_time=False):
@@ -37,16 +38,18 @@ class AnalyticCenter(object):
         self.logger.info("Minimal eigenvalues of X^-.5 * H(X) * X^-.5: {}".format(eigmin))
         return eigmin
 
-    def bla(self):
+    def stability_estimates(self):
         T = linalg.sqrtm(self.X)
         A_T = np.asmatrix(linalg.solve(T, self.system.A) @ T)
         R =-( A_T + A_T.H)
         eigminR = np.min(linalg.eigh(R)[0])
         self.logger.info("Minimal eigenvalues of R of the pH realization: {}".format(eigminR))
+        dist, omega = ab13fd(self.system.n, A_T, tol=1.e-5)
+        self.logger.info("Distance to stability is: {}".format(dist))
 
 
     def compute_characteristic_values(self):
         self.lambda_min_alpha()
         self.lambda_min_beta()
         self.lambda_min_xi()
-        self.bla()
+        self.stability_estimates()

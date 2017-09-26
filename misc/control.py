@@ -630,9 +630,10 @@ def place(A, B, p):
     alpha = min(system_eigs.real);
 
     # Call SLICOT routine to place the eigenvalues
-    A_z, w, nfp, nap, nup, F, Z = \
+    A_z, w, nfp, nap, nup, F, Z, warn = \
         sb01bd(B_mat.shape[0], B_mat.shape[1], len(placed_eigs), alpha,
                A_mat, B_mat, placed_eigs, 'C');
-
+    import ipdb
+    ipdb.set_trace()
     # Return the gain matrix, with MATLAB gain convention
-    return -F, nup
+    return -F, nup, warn
