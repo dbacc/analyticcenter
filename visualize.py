@@ -21,25 +21,28 @@ def log_plot_eigenvalues(alg_object, n=100):
 def log_log_direction(X, det):
     X_final = X[-1]
     det_final = det[-1]
-    X_diff = X - X_final
-    det_diff = det - det_final
-    t = np.arange(len(det))
+    X_diff = np.linalg.norm(X - X_final, axis=(1,2))[:-1]
+    det_diff = np.abs(det - det_final)[:-1]
+    t = np.arange(len(det_diff))
     t = t.astype('float')
-    quadratic_curve = np.abs(det_diff[0])*t**(-2)
+    quadratic_curve_det = np.polyfit(t, np.log(det_diff), 2)
+    quadratic_curve_det = np.polyval(quadratic_curve_det, t)
+    quadratic_curve_X = np.polyfit(t, np.log(X_diff), 2)
+    quadratic_curve_X = np.polyval(quadratic_curve_X, t)
     plt.figure()
     plt.yscale('log')
     plt.xscale('log')
     plt.xlabel('n')
 
-    plt.plot(np.linalg.norm(X_diff, axis=(1,2)), label=r'$\|\|X-X_c\|\|$')
-    plt.plot(t, quadratic_curve, label='quadratic function')
+    plt.plot(X_diff, label=r'$\|\|X-X_c\|\|$')
+    plt.plot(t, np.exp(quadratic_curve_X), label='best quadratic fit')
     plt.legend()
-    quadratic_curve = np.linalg.norm(X_diff[0])*t**(-2)
+    quadratic_curve = 2*np.linalg.norm(X_diff[0])-t**2
     plt.figure()
     plt.yscale('log')
     plt.xscale('log')
     plt.xlabel('n')
-    plt.plot(np.abs(det_diff), label=r'$\|det(H(X))-det(H(X_c))\|$')
-    plt.plot(t, quadratic_curve,label='quadratic function')
+    plt.plot(det_diff, label=r'$\|det(H(X))-det(H(X_c))\|$')
+    plt.plot(t, np.exp(quadratic_curve_det),label='best quadratic fit')
     plt.legend()
     plt.show()
