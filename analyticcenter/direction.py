@@ -18,8 +18,11 @@ class DirectionAlgorithm(object):
     discrete_time = False
     maxiter = 100
     search_direction = None
+    save_intermediate = False
+    intermediate_X = None
+    intermediate_det = None
 
-    def __init__(self, ac_object, discrete_time):
+    def __init__(self, ac_object, discrete_time, save_intermediate=False):
         DirectionAlgorithm.algorithm = ac_object
         DirectionAlgorithm.system = ac_object.system
         if discrete_time:
@@ -28,6 +31,7 @@ class DirectionAlgorithm(object):
             DirectionAlgorithm.initial_X = InitialXCT()
 
         DirectionAlgorithm.discrete_time = discrete_time
+        DirectionAlgorithm.save_intermediate = save_intermediate
 
     def _directional_iterative_algorithm(self, direction):
         def print_information(steps_count, residual, determinant, X):
@@ -57,6 +61,13 @@ class DirectionAlgorithm(object):
                 self.algorithm._get_H_matrix(X)
             # ipdb.set_trace()
             print_information(steps_count, residual, determinant, X)
+            if self.save_intermediate:
+                if self.intermediate_X is None:
+                    self.intermediate_X =[]
+                    self.intermediate_det = []
+                self.intermediate_X.append(X)
+                self.intermediate_det.append(determinant)
+
             R = self.algorithm._get_R(X)
             self.logger.debug("Current Determinant of R: {}".format(linalg.det(R)))
 
@@ -71,6 +82,9 @@ class DirectionAlgorithm(object):
             determinant = linalg.det(P) * self.algorithm._get_determinant_R(X)
             steps_count += 1
         print_information(steps_count, residual, determinant, X)
+        if self.save_intermediate:
+            self.intermediate_X = np.array(self.intermediate_X)
+            self.intermediate_det = np.array(self.intermediate_det)
         self.logger.info("Finished computation...")
         if residual <= self.algorithm.abs_tol or Delta_residual <= self.algorithm.rel_tol:
             HX = self.algorithm._get_H_matrix(X)
@@ -377,6 +391,7 @@ class SteepestAscentDirection(DirectionAlgorithm):
 class InitialX(DirectionAlgorithm):
     X0 = None
     maxiter = 5
+    save_intermediate = False
 
     def __init__(self):
         pass
@@ -431,7 +446,7 @@ class InitialX(DirectionAlgorithm):
                     "Eigenvalues of H(X_init): {}".format(linalg.eigh(self.algorithm._get_H_matrix(Xinit))[0]))
 
         else:
-            self.logger.info("Initial X is already set")
+            # self.logger.info("Initial X is already set")
             Xinit = self.X0
         return Xinit, True
 

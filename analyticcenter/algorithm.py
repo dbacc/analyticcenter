@@ -13,10 +13,11 @@ from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, 
 logger = logging.getLogger(__name__)
 
 
-def get_analytic_center_object(*args, **kwargs):
+def get_algorithm_object(*args, **kwargs):
     discrete_time = kwargs.get('discrete_time')
     if discrete_time is None:
         discrete_time = False
+        kwargs['discrete_time'] = False
         logger.warning("No system type given. Defaulting to continuous time.")
     if discrete_time:
         return AlgorithmDiscreteTime(*args, **kwargs)
@@ -29,7 +30,7 @@ class Algorithm(object):
     debug = True
     logger = logging.getLogger(__name__)
 
-    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-8, discrete_time=False):
+    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-8, discrete_time=False, save_intermediate=False):
         self.system = system
         self.X0 = None
         self.H0 = None
@@ -42,7 +43,7 @@ class Algorithm(object):
         self.check_stability()
         self.check_controllability()
         self.check_passivity()
-        DirectionAlgorithm(self, self.discrete_time)
+        DirectionAlgorithm(self, self.discrete_time, save_intermediate)
 
     def __init_H0(self):
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.H, self.system.R]])

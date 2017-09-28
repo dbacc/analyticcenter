@@ -1,7 +1,7 @@
 import numpy as np
 
 from analyticcenter.linearsystem import OptimalControlSystem
-from analyticcenter.algorithm import get_analytic_center_object
+from analyticcenter.algorithm import get_algorithm_object
 import control
 from misc.misc import check_positivity
 
@@ -18,7 +18,7 @@ def generate_random_sys_and_save(m, n):
         R = np.random.rand(m, m)
         R = R @ R.T
         sys = OptimalControlSystem(A, B, C, D, Q, S, R)
-        alg = get_analytic_center_object(sys, 10 ** (-3))
+        alg = get_algorithm_object(sys, 10 ** (-3))
         if sys._check_positivity(sys.H0):
             continue
         if sys._check_positivity(alg._get_H_matrix(alg._get_initial_X())):
@@ -43,7 +43,7 @@ def generate_random_sys_and_save_2(m, n):
 
 
         sys = OptimalControlSystem(ss.A, ss.B, ss.C, ss.D, np.zeros(n,n), ss.C.H, ss.D + ss.D.H)
-        alg = get_analytic_center_object(sys, 10 ** (-3))
+        alg = get_algorithm_object(sys, 10 ** (-3))
         if sys._check_positivity(sys.H0):
             continue
         if sys._check_positivity(alg._get_H_matrix(alg._get_initial_X())):
@@ -70,7 +70,7 @@ def generate_random_sys_and_save_3(m, n):
         ipdb.set_trace()
         X = control.care(ss.A, ss.B, np.zeros((n,n)), R, ss.C.H, np.identity(n))[0]
 
-        alg = get_analytic_center_object(sys, 10 ** (-3))
+        alg = get_algorithm_object(sys, 10 ** (-3))
 
         if check_positivity(-X):
             break
@@ -89,7 +89,7 @@ def generate_pH_sys_and_save(n,m):
     sys = OptimalControlSystem(A, B, C, D, np.zeros((n,n)), C.H, D + D.T)
     # Xm = control.care(A, B, np.zeros((n,n)), R, C.H, np.identity(n))[0]
     # Xp = control.care(-A, B, np.zeros((n,n)), -(D + D.T), C.H,np.identity(n))[0]
-    alg = get_analytic_center_object(sys, 10 ** (-3))
+    alg = get_algorithm_object(sys, 10 ** (-3))
     #
     # check_positivity(-Xm)
     # check_positivity(-Xp)
