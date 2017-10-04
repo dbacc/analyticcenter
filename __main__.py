@@ -23,7 +23,7 @@ if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
     from examples.rlc import sys
-    alg = get_algorithm_object(sys, discrete_time=False, save_intermediate=False, abs_tol=1e-12)
-    direction_method1 = SteepestAscentDirectionCT()
-    direction_method1.maxiter = 500
+    alg = get_algorithm_object(sys, discrete_time=False, save_intermediate=False, abs_tol=9e-1)
+    direction_method1 = NewtonDirectionMultipleDimensionsCT()
+    direction_method1.maxiter = 1000
     (ac, success) = direction_method1()
