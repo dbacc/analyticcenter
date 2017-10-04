@@ -5,7 +5,7 @@ from misc.misc import rsolve
 from slycot import ab13fd
 
 class AnalyticCenter(object):
-    def __init__(self, X, A_F, HX, algorithm=None, discrete_time=False):
+    def __init__(self, X, A_F, HX, algorithm=None, discrete_time=False, delta_cum=None):
         self.algorithm = algorithm
         self.X = X
         self.A_F = A_F
@@ -13,6 +13,7 @@ class AnalyticCenter(object):
         self.discrete_time = discrete_time
         self.system = algorithm.system
         self.logger = logging.getLogger(__name__)
+        self.delta_cum = delta_cum
 
     def lambda_min_alpha(self):
         eigs = linalg.eigh(self.HX)[0]

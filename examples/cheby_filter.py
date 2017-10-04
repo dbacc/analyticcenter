@@ -1,6 +1,6 @@
 import control
 import numpy as np
-from analyticcenter.linearsystem import OptimalControlSystem
+from analyticcenter.linearsystem import WeightedSystem
 from scipy.signal import cheby2
 
 
@@ -24,6 +24,6 @@ n = A.shape[0]
 Q = np.zeros((n, n))
 S = C.H
 R = D + D.H
-sys = OptimalControlSystem(A, B, C, D, Q, S, R)
+sys = WeightedSystem(A, B, C, D, Q, S, R)
 
 # sys.check_passivity()

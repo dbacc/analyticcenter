@@ -4,7 +4,8 @@ import os
 import yaml
 
 from analyticcenter.algorithm import get_algorithm_object
-from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT
+from analyticcenter.newton import NewtonDirectionMultipleDimensionsCT
+from analyticcenter.steepestascent import SteepestAscentDirectionCT
 from logger import prepare_logger
 
 
@@ -21,7 +22,8 @@ def load_config():
 if __name__ == "__main__":
     logging_config = load_config()
     prepare_logger(logging_config)
-    from examples.example2 import sys
-    alg = get_algorithm_object(sys, discrete_time=False, save_intermediate=True)
-    direction_method = NewtonDirectionMultipleDimensionsCT()
-    (ac, success) = direction_method()
+    from examples.rlc import sys
+    alg = get_algorithm_object(sys, discrete_time=False, save_intermediate=False, abs_tol=1e-12)
+    direction_method1 = SteepestAscentDirectionCT()
+    direction_method1.maxiter = 500
+    (ac, success) = direction_method1()

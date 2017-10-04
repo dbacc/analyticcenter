@@ -21,7 +21,7 @@ class LTI(object):
         self.logger = logging.getLogger(__name__)
 
 
-class OptimalControlSystem(LTI):
+class WeightedSystem(LTI):
     """Describes LTI system with weight Matrix"""
 
     def __init__(self, A, B, C, D, Q, S, R):

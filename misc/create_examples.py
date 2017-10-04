@@ -1,6 +1,6 @@
 import numpy as np
 
-from analyticcenter.linearsystem import OptimalControlSystem
+from analyticcenter.linearsystem import WeightedSystem
 from analyticcenter.algorithm import get_algorithm_object
 import control
 from misc.misc import check_positivity
@@ -17,7 +17,7 @@ def generate_random_sys_and_save(m, n):
         S = 0.01 * np.random.rand(n, m)
         R = np.random.rand(m, m)
         R = R @ R.T
-        sys = OptimalControlSystem(A, B, C, D, Q, S, R)
+        sys = WeightedSystem(A, B, C, D, Q, S, R)
         alg = get_algorithm_object(sys, 10 ** (-3))
         if sys._check_positivity(sys.H0):
             continue
@@ -42,7 +42,7 @@ def generate_random_sys_and_save_2(m, n):
         ss = control.tf2ss(tf)
 
 
-        sys = OptimalControlSystem(ss.A, ss.B, ss.C, ss.D, np.zeros(n,n), ss.C.H, ss.D + ss.D.H)
+        sys = WeightedSystem(ss.A, ss.B, ss.C, ss.D, np.zeros(n, n), ss.C.H, ss.D + ss.D.H)
         alg = get_algorithm_object(sys, 10 ** (-3))
         if sys._check_positivity(sys.H0):
             continue
@@ -65,7 +65,7 @@ def generate_random_sys_and_save_3(m, n):
         ss.A = 10 * ss.A
         # ss.B = 1/10 * ss.B
         ss.C = 1/10 * ss.C
-        sys = OptimalControlSystem(ss.A, ss.B, ss.C, ss.D, np.zeros((n,n)), ss.C.H, R)
+        sys = WeightedSystem(ss.A, ss.B, ss.C, ss.D, np.zeros((n, n)), ss.C.H, R)
         import ipdb
         ipdb.set_trace()
         X = control.care(ss.A, ss.B, np.zeros((n,n)), R, ss.C.H, np.identity(n))[0]
@@ -86,7 +86,7 @@ def generate_pH_sys_and_save(n,m):
     C = - B.T
     D = 0.5 * H[n:, n:]
     R = D + D.T
-    sys = OptimalControlSystem(A, B, C, D, np.zeros((n,n)), C.H, D + D.T)
+    sys = WeightedSystem(A, B, C, D, np.zeros((n, n)), C.H, D + D.T)
     # Xm = control.care(A, B, np.zeros((n,n)), R, C.H, np.identity(n))[0]
     # Xp = control.care(-A, B, np.zeros((n,n)), -(D + D.T), C.H,np.identity(n))[0]
     alg = get_algorithm_object(sys, 10 ** (-3))

@@ -4,11 +4,13 @@ import numpy as np
 from scipy import linalg
 
 from analyticcenter.direction import DirectionAlgorithm
+from analyticcenter.initialization import InitialXCT, InitialXDT
 import misc.misc as misc
 import ipdb
 from misc.control import place
 import control
-from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, AnalyticCenterUnstable, AnalyticCenterRiccatiSolutionFailed
+from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, AnalyticCenterUnstable, \
+    AnalyticCenterRiccatiSolutionFailed
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ class Algorithm(object):
     debug = True
     logger = logging.getLogger(__name__)
 
-    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-8, discrete_time=False, save_intermediate=False):
+    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-20, discrete_time=False, save_intermediate=False):
         self.system = system
         self.X0 = None
         self.H0 = None
@@ -44,6 +46,11 @@ class Algorithm(object):
         self.check_controllability()
         self.check_passivity()
         DirectionAlgorithm(self, self.discrete_time, save_intermediate)
+        if discrete_time:
+            DirectionAlgorithm.initial_X = InitialXDT()
+        else:
+            DirectionAlgorithm.initial_X = InitialXCT()
+
 
     def __init_H0(self):
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.H, self.system.R]])
@@ -114,8 +121,7 @@ class Algorithm(object):
     def check_passivity(self):
         try:
             ricc = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
-                                   np.identity(self.system.n))
-
+                                       np.identity(self.system.n))
 
             X = - ricc[0]
 
@@ -125,9 +131,17 @@ class Algorithm(object):
                 self.logger.critical("System is not passive")
                 raise AnalyticCenterNotPassive("System is not passive")
         except ValueError as e:
-            self.logger.critical("Riccati solver for passivity check did not succeed with message:\n{}".format(e.args[0]))
+            self.logger.critical(
+                "Riccati solver for passivity check did not succeed with message:\n{}".format(e.args[0]))
             raise AnalyticCenterRiccatiSolutionFailed("Riccati solver for passivity check did not succeed")
 
+    def get_residual(self, X, P, F, A_F, Delta=None):
+        res = self._get_res(X, P, F, A_F, Delta)
+        self.logger.debug("res: {}".format(res))
+        if Delta is None:
+            return np.linalg.norm(res)
+        else:
+            return np.abs(np.real(np.trace(res @ Delta)))
 
 class AlgorithmContinuousTime(Algorithm):
     # TODO: Improve performance by saving intermediate results where appropriate
@@ -152,15 +166,14 @@ class AlgorithmContinuousTime(Algorithm):
         P = self.riccati_operator(X, F)
         return F, P
 
-    def get_residual(self, X, P, F, A_F, Delta=None):
-
-        res = P @ A_F
-        res = res + res.H
-        self.logger.debug("res: {}".format(res))
+    def _get_res(self, X, P, F, A_F, Delta=None):
         if Delta is None:
-            return np.linalg.norm(res)
+            res = P @ A_F
         else:
-            return np.real(np.trace(res @ Delta))
+            res = np.asmatrix(linalg.solve(P, A_F.H))
+        res = res + res.H
+        return res
+
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
@@ -218,16 +231,12 @@ class AlgorithmDiscreteTime(Algorithm):
         P = self.riccati_operator(X, F)
         return F, P
 
-    def get_residual(self, X, P, F, A_F, Delta=None):
+    def _get_res(self, X, P, F, A_F, Delta=None):
         Pinv = linalg.inv(P)
         res = A_F @ Pinv @ A_F.H - Pinv + self.system.B @ linalg.solve(
             self.system.R - self.system.B.H @ X @ self.system.B,
             self.system.B.H)
-        self.logger.debug("res: {}".format(res))
-        if Delta is None:
-            return np.linalg.norm(res)
-        else:
-            return np.real(np.trace(res @ Delta))
+        return res
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X @ self.system.A + self.system.S.H

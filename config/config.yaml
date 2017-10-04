@@ -10,7 +10,7 @@ formatters:
         datefmt: "%Y-%m-%d %H:%M:%S"
     console:
         class: colorlog.ColoredFormatter
-        format: "%(log_color)s[%(asctime)s] [%(levelname)-8s] --- %(message)s (%(filename)s:%(lineno)s)"
+        format: "%(log_color)s[%(levelname)-8s][%(name)s] --- %(message)s (%(filename)s:%(lineno)s)"
         datefmt: "%Y-%m-%d %H:%M:%S"
     console_user:
         class: colorlog.ColoredFormatter
@@ -25,7 +25,7 @@ handlers:
     console:
         class: logging.StreamHandler
         level: DEBUG
-        formatter: console_user
+        formatter: console
         stream: ext://sys.stdout
     dummy:
         class: logging.NullHandler
@@ -34,5 +34,5 @@ handlers:
 
 
 root:
-    level: INFO
+    level: DEBUG
     handlers: [console, dummy]

@@ -1,7 +1,7 @@
 import pytest
 
 from analyticcenter.algorithm import get_algorithm_object
-from analyticcenter.direction import NewtonDirectionMultipleDimensionsCT, NewtonDirectionMultipleDimensionsDT
+from analyticcenter.newton import NewtonDirectionMultipleDimensionsCT, NewtonDirectionMultipleDimensionsDT
 from analyticcenter.exceptions import AnalyticCenterUnstable, AnalyticCenterNotPassive, AnalyticCenterRiccatiSolutionFailed, AnalyticCenterUncontrollable
 from examples.rlc import sys as sysrlc
 from test.test_examples.example1 import sys
