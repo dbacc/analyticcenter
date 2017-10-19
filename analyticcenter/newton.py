@@ -10,7 +10,8 @@ from misc.misc import rsolve
 
 class NewtonDirection(DirectionAlgorithm):
     name = "Newton"
-
+    newton_direction = None
+    line_search = False
     def __init__(self):
         raise NotImplementedError("Should not be called from Base class")
 
@@ -21,6 +22,15 @@ class NewtonDirection(DirectionAlgorithm):
         Delta_X_hat = self._newton_step_solver(A_F_hat, S2, P0_root)
         # ipdb.set_trace()
         Delta_X = P0_root @ Delta_X_hat @ P0_root
+
+        if self.line_search:
+            X0 = Delta_X + X0
+            # ipdb.set_trace()
+            analyticcenter_new, success = self.newton_direction._directional_iterative_algorithm(
+                direction_algorithm=self.newton_direction._get_direction, fixed_direction=Delta_X, X0=X0)
+            Delta_X += analyticcenter_new.delta_cum
+
+
         return Delta_X
 
     def _transform_system2current_X0(self, A_F, P0, R0):
@@ -34,10 +44,50 @@ class NewtonDirection(DirectionAlgorithm):
         raise NotImplementedError
 
 
-class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
+class NewtonDirectionOneDimensionCT(NewtonDirection):
+    fixed_direction = None
+    maxiter = 5
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
+    # TODO: Check Formula: Slow convergence!!
+    def _newton_step_solver(self, A, S, P0_root):
+        search_dir = linalg.solve(P0_root, rsolve(P0_root, self.fixed_direction))
+        self.logger.debug("Search direction: {}".format(self.fixed_direction))
+        # search_dir = self.fixed_direction
+        correction = -(np.real(np.trace(search_dir @ A + A.H @ search_dir)) / (2. * np.real(
+            np.trace(search_dir @ S @ search_dir)) + 1. * linalg.norm(
+            search_dir @ A + A.H @ search_dir) ** 2))
+        # if np.isclose(correction,0.):
+        #     ipdb.set_trace()
+        return correction * search_dir
+
+
+class NewtonDirectionOneDimensionDT(NewtonDirection):
+    fixed_direction = None
+    maxiter = 5
+
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    # TODO: Check Formula: Slow convergence!!
+    def _newton_step_solver(self, A, S, P0_root):
+        n = self.system.n
+        identity = np.identity(n)
+        AAH = A @ A.H
+        search_dir = linalg.solve(P0_root, rsolve(P0_root, self.fixed_direction))
+        second_order = - S @ search_dir @ S @ search_dir - 2 * AAH @ search_dir @ S @ search_dir - AAH @ search_dir @ AAH @ search_dir + 2 * A @ search_dir @ A.H @ search_dir - search_dir @ search_dir
+        self.logger.debug("Search direction: {}".format(self.fixed_direction))
+        return -0.5 * (np.real(np.trace(search_dir @ (identity - S - AAH))) / (np.real(
+            np.trace(second_order)))) * search_dir
+
+
+class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
+    newton_direction = NewtonDirectionOneDimensionCT()
+    line_search = True
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def _newton_step_solver(self, A, S, P0_root):
         '''solve newton step using kronecker products. Will be way too expensive in general!'''
@@ -58,7 +108,6 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
 
         # check if indeed solution:
         # ipdb.set_trace()
-
 
         if self.debug:
             self._check(A, S, Delta)
@@ -143,43 +192,3 @@ class NewtonDirectionMultipleDimensionsDT(NewtonDirection):
             self.logger.critical("det factor by newton step is less than 1: {}".format(det_factor))
         else:
             self.logger.debug("det factor by newton step: {}".format(det_factor))
-
-
-class NewtonDirectionOneDimensionCT(NewtonDirection):
-    fixed_direction = None
-    maxiter = 5
-
-
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-    # TODO: Check Formula: Slow convergence!!
-    def _newton_step_solver(self, A, S, P0_root):
-        search_dir = linalg.solve(P0_root, rsolve(P0_root, self.fixed_direction))
-        self.logger.debug("Search direction: {}".format(self.fixed_direction))
-        # search_dir = self.fixed_direction
-        correction = -(np.real(np.trace(search_dir @ A + A.H @ search_dir)) / (2.*np.real(
-            np.trace(search_dir @ S @ search_dir)) + 1. * linalg.norm(
-            search_dir @ A + A.H @ search_dir) ** 2))
-        # if np.isclose(correction,0.):
-        #     ipdb.set_trace()
-        return correction * search_dir
-
-
-class NewtonDirectionOneDimensionDT(NewtonDirection):
-    fixed_direction = None
-    maxiter = 5
-
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-    # TODO: Check Formula: Slow convergence!!
-    def _newton_step_solver(self, A, S, P0_root):
-        n = self.system.n
-        identity = np.identity(n)
-        AAH = A @ A.H
-        search_dir = linalg.solve(P0_root, rsolve(P0_root, self.fixed_direction))
-        second_order = - S @ search_dir @ S @ search_dir - 2 * AAH @ search_dir @ S @ search_dir - AAH @ search_dir @ AAH @ search_dir + 2 * A @ search_dir @ A.H @ search_dir - search_dir @ search_dir
-        self.logger.debug("Search direction: {}".format(self.fixed_direction))
-        return -0.5 * (np.real(np.trace(search_dir @ (identity - S - AAH))) / (np.real(
-            np.trace(second_order)))) * search_dir
