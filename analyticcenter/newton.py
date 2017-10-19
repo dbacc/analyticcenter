@@ -42,13 +42,13 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
     def _newton_step_solver(self, A, S, P0_root):
         '''solve newton step using kronecker products. Will be way too expensive in general!'''
         # TODO: use Schur Form
-        rhs = np.ravel(A + A.H)
+        rhs = np.asmatrix(np.ravel(A + A.H)).H
         AAH = A @ A.H
         n = self.system.n
         identity = np.identity(n)
         lhs = - np.kron(A.T, A) - np.kron(np.conj(A), A.H) - np.kron(identity, AAH) - np.kron(AAH.T,
                                                                                               identity) - np.kron(
-            identity, S) - np.kron(S, identity)
+            identity, S) - np.kron(S, identity)  +rhs @ rhs.H
 
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
         Delta = linalg.solve(lhs, rhs)
@@ -159,8 +159,9 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
         self.logger.debug("Search direction: {}".format(self.fixed_direction))
         # search_dir = self.fixed_direction
         correction = -(np.real(np.trace(search_dir @ A + A.H @ search_dir)) / (2.*np.real(
-            np.trace(search_dir @ S @ search_dir)) + 1. * linalg.norm(
+            np.trace(search_dir @ S @ search_dir)) + 0. * linalg.norm( # factor 0 for exp(log(...))
             search_dir @ A + A.H @ search_dir) ** 2))
+        # ipdb.set_trace()
         # if np.isclose(correction,0.):
         #     ipdb.set_trace()
         return correction * search_dir
