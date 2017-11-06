@@ -89,6 +89,7 @@ class DirectionAlgorithm(object):
             self.intermediate_X = np.array(self.intermediate_X)
             self.intermediate_det = np.array(self.intermediate_det)
         self.logger.info("Finished computation...")
+        ipdb.set_trace()
         HX = self.algorithm._get_H_matrix(X)
         analyticcenter = AnalyticCenter(X, A_F, HX, algorithm=self.algorithm, discrete_time=self.discrete_time,
                                         delta_cum=delta_cum)

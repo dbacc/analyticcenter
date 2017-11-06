@@ -110,6 +110,7 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         # ipdb.set_trace()
 
         if self.debug:
+            self.logger.debug("Condition Number of the Hessian: {}".format(np.linalg.cond(lhs)))
             self._check(A, S, Delta)
 
         return Delta
