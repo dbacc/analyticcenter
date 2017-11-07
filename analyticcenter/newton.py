@@ -84,8 +84,9 @@ class NewtonDirectionOneDimensionDT(NewtonDirection):
 
 
 class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
+    name = "NewtonMDCT"
     newton_direction = NewtonDirectionOneDimensionCT()
-    line_search = True
+    line_search = False
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 

@@ -51,7 +51,6 @@ class Algorithm(object):
         else:
             DirectionAlgorithm.initial_X = InitialXCT()
 
-
     def __init_H0(self):
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.H, self.system.R]])
 
@@ -77,7 +76,7 @@ class Algorithm(object):
                 self.logger.debug("Gradient: {} Direction: {}, {}".format(grad[i, j], i, j))
         return np.unravel_index(np.argmax(np.abs(grad)), grad.shape)
 
-    def sample_direction(self, X,  determinant_start, residual_start):
+    def sample_direction(self, X, determinant_start, residual_start):
         dimension = self.system.n
         detsave = 0
         for i in np.arange(dimension):
@@ -96,18 +95,17 @@ class Algorithm(object):
                     A_F = (self.system.A - self.system.B @ F)
                     residual = self.get_residual(X1, P, F, A_F)
                     determinant = linalg.det(P) * self._get_determinant_R(X1)
-                    if determinant >0:
+                    if determinant > 0:
 
                         if determinant > determinant_start:
 
                             if determinant - determinant_start > detsave and linalg.norm(residual) < residual_start:
-                                self.logger.info("new best improvement: i,j: {}, {}".format(i,j))
+                                self.logger.info("new best improvement: i,j: {}, {}".format(i, j))
                                 self.logger.debug(
                                     "residual: {}\ndeterminant: {}\nalpha: {}".format(linalg.norm(residual),
                                                                                       determinant, alpha))
                                 self.logger.info("Improvement!")
                                 detsave = determinant - determinant_start
-
 
     def _get_H_matrix(self, X: np.matrix):
         raise NotImplementedError
@@ -176,6 +174,14 @@ class Algorithm(object):
         else:
             return np.abs(np.real(np.trace(res @ Delta)))
 
+    def next_step(self, X):
+        F, P = self._get_F_and_P(X)
+        A_F = (self.system.A - self.system.B @ F)
+        residual = self.get_residual(X, P, F, A_F)
+        determinant = linalg.det(P) * self._get_determinant_R(X)
+        return F, P, A_F, residual, determinant
+
+
 class AlgorithmContinuousTime(Algorithm):
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = False
@@ -206,7 +212,6 @@ class AlgorithmContinuousTime(Algorithm):
             res = np.asmatrix(linalg.solve(P, A_F.H))
         res = res + res.H
         return res
-
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
