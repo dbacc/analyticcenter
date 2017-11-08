@@ -6,7 +6,6 @@ import yaml
 from analyticcenter.algorithm import get_algorithm_object
 from analyticcenter.newton import NewtonDirectionMultipleDimensionsCT
 from analyticcenter.steepestascent import SteepestAscentDirectionCT
-from analyticcenter.diagonal import DiagonalDirection
 from logger import prepare_logger
 
 
