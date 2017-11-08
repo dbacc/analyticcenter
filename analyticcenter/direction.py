@@ -73,6 +73,10 @@ class DirectionAlgorithm(object):
 
 
             Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
+            # if self.name == "NewtonMDCT" and steps_count>=20:
+            #     # ipdb.set_trace()
+            #     Delta_X = linalg.solve(P, A_F.H)
+            #     Delta_X += Delta_X.T
             delta_cum += Delta_X
             Delta_residual = linalg.norm(Delta_X)
             X = X + alpha * Delta_X
@@ -89,6 +93,8 @@ class DirectionAlgorithm(object):
             self.intermediate_X = np.array(self.intermediate_X)
             self.intermediate_det = np.array(self.intermediate_det)
         self.logger.info("Finished computation...")
+        # if self.name == "NewtonMDCT":
+        #     ipdb.set_trace()
         HX = self.algorithm._get_H_matrix(X)
         analyticcenter = AnalyticCenter(X, A_F, HX, algorithm=self.algorithm, discrete_time=self.discrete_time,
                                         delta_cum=delta_cum)

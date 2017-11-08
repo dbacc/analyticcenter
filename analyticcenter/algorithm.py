@@ -51,7 +51,6 @@ class Algorithm(object):
         else:
             DirectionAlgorithm.initial_X = InitialXCT()
 
-
     def __init_H0(self):
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.H, self.system.R]])
 
@@ -73,8 +72,40 @@ class Algorithm(object):
                     E[j, i] = 1 / np.sqrt(2)
                 Delta_H = self._get_Delta_H(E)
                 grad[i, j] = np.trace(- Hinv.H @ Delta_H)
+                det_new = linalg.det(H + Delta_H)
                 self.logger.debug("Gradient: {} Direction: {}, {}".format(grad[i, j], i, j))
         return np.unravel_index(np.argmax(np.abs(grad)), grad.shape)
+
+    def sample_direction(self, X, determinant_start, residual_start):
+        dimension = self.system.n
+        detsave = 0
+        for i in np.arange(dimension):
+            for j in np.arange(i + 1):
+                E = np.zeros((dimension, dimension))
+                if i == j:
+                    E[i, i] = 1
+                else:
+                    E[i, j] = 1 / np.sqrt(2)
+                    E[j, i] = 1 / np.sqrt(2)
+                direction = E
+                values = np.append(np.logspace(-20., 0), -np.logspace(-20., 0))
+                for alpha in values:
+                    X1 = X + alpha * direction
+                    F, P = self._get_F_and_P(X1)
+                    A_F = (self.system.A - self.system.B @ F)
+                    residual = self.get_residual(X1, P, F, A_F)
+                    determinant = linalg.det(P) * self._get_determinant_R(X1)
+                    if determinant > 0:
+
+                        if determinant > determinant_start:
+
+                            if determinant - determinant_start > detsave and linalg.norm(residual) < residual_start:
+                                self.logger.info("new best improvement: i,j: {}, {}".format(i, j))
+                                self.logger.debug(
+                                    "residual: {}\ndeterminant: {}\nalpha: {}".format(linalg.norm(residual),
+                                                                                      determinant, alpha))
+                                self.logger.info("Improvement!")
+                                detsave = determinant - determinant_start
 
     def _get_H_matrix(self, X: np.matrix):
         raise NotImplementedError
@@ -137,11 +168,19 @@ class Algorithm(object):
 
     def get_residual(self, X, P, F, A_F, Delta=None):
         res = self._get_res(X, P, F, A_F, Delta)
-        self.logger.debug("res: {}".format(res))
+        # self.logger.debug("res: {}".format(res))
         if Delta is None:
             return np.linalg.norm(res)
         else:
             return np.abs(np.real(np.trace(res @ Delta)))
+
+    def next_step(self, X):
+        F, P = self._get_F_and_P(X)
+        A_F = (self.system.A - self.system.B @ F)
+        residual = self.get_residual(X, P, F, A_F)
+        determinant = linalg.det(P) * self._get_determinant_R(X)
+        return F, P, A_F, residual, determinant
+
 
 class AlgorithmContinuousTime(Algorithm):
     # TODO: Improve performance by saving intermediate results where appropriate
@@ -173,7 +212,6 @@ class AlgorithmContinuousTime(Algorithm):
             res = np.asmatrix(linalg.solve(P, A_F.H))
         res = res + res.H
         return res
-
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
