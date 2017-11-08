@@ -11,6 +11,7 @@ from misc.control import place
 import control
 from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, AnalyticCenterUnstable, \
     AnalyticCenterRiccatiSolutionFailed
+from misc.misc import symmetric_product_pos_def
 
 logger = logging.getLogger(__name__)
 
@@ -215,11 +216,12 @@ class AlgorithmContinuousTime(Algorithm):
 
     def riccati_operator(self, X, F=None):
         RF = - self.system.B.H @ X + self.system.S.H
-        Ricc = self.system.Q - self.system.A.H @ X - X @ self.system.A
+        XA = X @ self.system.A
+        Ricc = self.system.Q - XA.H - XA
         if F is None:
-            Ricc -= RF.H @ linalg.solve(self.system.R, RF)
+            Ricc -= symmetric_product_pos_def(F, RF, invertP=True)
         else:
-            Ricc -= F.H @ self.system.R @ F
+            Ricc -= symmetric_product_pos_def(F, self.system.R)
         return Ricc
 
     def _get_R(self, X):

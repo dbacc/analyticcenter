@@ -21,15 +21,16 @@ class InitialX(DirectionAlgorithm):
         if InitialX.X0 is None:
             self.logger.info('Computing initial X')
 
-            X_plus = -self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
-                                          np.identity(self.system.n))
+            X_plus = -np.asmatrix(self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
+                                          np.identity(self.system.n)))
             Am = -self.system.A
             Bm = self.system.B
             Sm = self.system.S
             Qm = -self.system.Q
             Rm = -self.system.R
-            X_minus = -self.riccati_solver(Am, Bm, Qm, Rm, Sm,
-                                           np.identity(self.system.n))
+            X_minus = -np.asmatrix(self.riccati_solver(Am, Bm, Qm, Rm, Sm,
+                                           np.identity(self.system.n)))
+
 
             if np.isclose(linalg.norm(X_plus - X_minus), 0):
                 self.logger.critical("X_+ and X_- are (almost) identical: No interior!")
@@ -44,6 +45,7 @@ class InitialX(DirectionAlgorithm):
             # ipdb.set_trace()
             newton_direction = self.newton_direction
             fixed_direction = X_minus @ linalg.sqrtm(linalg.solve(X_minus, X_plus))
+            fixed_direction = 0.5* (fixed_direction + fixed_direction.H)
             # fixed_direction = 0.5* (X_minus + X_plus)
             # ipdb.set_trace()
             self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(fixed_direction)[0]))

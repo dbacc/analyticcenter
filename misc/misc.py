@@ -1,8 +1,9 @@
 import numpy as np
 from scipy import linalg
 import logging
-logger = logging.getLogger()
+import ipdb
 
+logger = logging.getLogger()
 
 
 def rsolve(*args, **kwargs):
@@ -29,9 +30,30 @@ def check_positivity(M, M_name=""):
         return True
     except linalg.LinAlgError as err:
         lmin = np.min(linalg.eigh(M)[0])
-        if lmin >=0 or np.isclose(lmin,0):
-            logger.warning('Matrix {} seems to be non-negative, but Cholesky factorization failed due to roundoff errors'.format(M_name))
+        if lmin >= 0 or np.isclose(lmin, 0):
+            logger.warning(
+                'Matrix {} seems to be non-negative, but Cholesky factorization failed due to roundoff errors'.format(
+                    M_name))
             return True
         else:
             logger.critical('Matrix {} is not non-negative'.format(M_name))
         return False
+
+
+def symmetric_product_pos_def(B, P, invertP=False):
+    """Computes the product B.H @ P.I @ B in a symmetry-preserving way
+    input:
+        P: pos. def. 2d-array
+        B: 2d array
+    output:
+        B.H @ P.I @ B with B.H @ P.I @ B - (B.H @ P.I @ B).H = 0
+    """
+    T, Z = linalg.schur(P)
+    Z = np.asmatrix(Z)
+    if invertP:
+        D = np.diag(1 / np.sqrt(np.diag(T)))  # force diagonal matrix
+    else:
+        D = np.diag(np.sqrt(np.diag(T)))
+    product = D @ Z.H @ B
+    product = product.H @ product
+    return product
