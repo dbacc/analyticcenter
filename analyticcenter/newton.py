@@ -12,6 +12,7 @@ class NewtonDirection(DirectionAlgorithm):
     name = "Newton"
     newton_direction = None
     line_search = False
+
     def __init__(self):
         raise NotImplementedError("Should not be called from Base class")
 
@@ -30,14 +31,16 @@ class NewtonDirection(DirectionAlgorithm):
                 direction_algorithm=self.newton_direction._get_direction, fixed_direction=Delta_X, X0=X0)
             Delta_X += analyticcenter_new.delta_cum
 
-
         return Delta_X
 
     def _transform_system2current_X0(self, A_F, P0, R0):
         P0_root = linalg.sqrtm(P0)
+        R0_root = linalg.sqrtm(R0)
         B_hat = P0_root @ self.system.B
         A_F_hat = rsolve(P0_root, (P0_root @ A_F))
-        S2 = B_hat @ linalg.solve(R0, B_hat.H)  # only works in continuous time
+        qB, rB = np.linalg.qr(B_hat)
+        S2 = np.linalg.solve(R0_root, rB.H) @ qB.H  # Force symmetry!
+        S2 = S2.H @ S2
         return A_F_hat, P0_root, S2
 
     def _splitting_method(self, A, S, P0_root):
@@ -87,28 +90,28 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
     name = "NewtonMDCT"
     newton_direction = NewtonDirectionOneDimensionCT()
     line_search = False
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _newton_step_solver(self, A, S, P0_root):
         '''solve newton step using kronecker products. Will be way too expensive in general!'''
         # TODO: use Schur Form
-        rhs = np.ravel(A + A.H)
+        rhs = -np.ravel(A + A.H)
         AAH = A @ A.H
         n = self.system.n
         identity = np.identity(n)
-        lhs = - np.kron(A.T, A) - np.kron(np.conj(A), A.H) - np.kron(identity, AAH) - np.kron(AAH.T,
-                                                                                              identity) - np.kron(
-            identity, S) - np.kron(S, identity)
+        lhs = np.kron(A.T, A) + np.kron(np.conj(A), A.H) + np.kron(identity, AAH) + np.kron(AAH.T,
+                                                                                              identity) + np.kron(
+            identity, S) + np.kron(S, identity)
 
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
-        Delta = linalg.solve(lhs, rhs)
+        Delta = np.asmatrix(linalg.solve(lhs, rhs, assume_a='pos'))
         self.logger.debug("Solution Delta:\n{}".format(Delta))
         Delta = np.reshape(Delta, [n, n])
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
-
+        Delta = 0.5*(Delta + Delta.H)
         # check if indeed solution:
-        # ipdb.set_trace()
 
         if self.debug:
             self.logger.debug("Condition Number of the Hessian: {}".format(np.linalg.cond(lhs)))

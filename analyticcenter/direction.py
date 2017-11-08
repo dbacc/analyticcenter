@@ -73,8 +73,8 @@ class DirectionAlgorithm(object):
 
 
             Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
-            # if self.name == "NewtonMDCT" and steps_count>=20:
-            #     # ipdb.set_trace()
+            if self.name == "NewtonMDCT" and steps_count>=20:
+                ipdb.set_trace()
             #     Delta_X = linalg.solve(P, A_F.H)
             #     Delta_X += Delta_X.T
             delta_cum += Delta_X

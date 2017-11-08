@@ -29,6 +29,7 @@ class WeightedSystem(LTI):
         self.Q = np.asmatrix(Q)
         self.S = np.asmatrix(S)
         self.R = np.asmatrix(R)
+        self.Rsqrtm = np.asmatrix(linalg.sqrtm(self.R))
         self.__initH0()
 
 
