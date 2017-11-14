@@ -15,4 +15,5 @@ if __name__ == "__main__":
     X0 =np.load("results/X_last.npy")
     direction_method2 = SteepestAscentDirectionCT()
     direction_method2.maxiter = 100000000
-    (ac, success) = direction_method2(X0 = X0)
+    (ac, success) = direction_method2()
+    (ac, success) = direction_method1(X0=ac.X)

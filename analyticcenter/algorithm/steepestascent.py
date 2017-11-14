@@ -31,8 +31,7 @@ class SteepestAscentDirectionCT(SteepestAscentDirection):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _get_Delta(self, X, P, R, A):
-        Delta = np.asmatrix(linalg.solve(P, A.H))
-        Delta = Delta + Delta.H
+        Delta = A + A.H
         return Delta/linalg.norm(Delta)
 
 
