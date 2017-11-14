@@ -1,7 +1,7 @@
 
 from analyticcenter import get_algorithm_object
 from analyticcenter import NewtonDirectionMultipleDimensionsCT
-from analyticcenter import SteepestAscentDirectionCT
+from  analyticcenter import SteepestAscentDirectionCT
 
 from analyticcenter.examples.example2 import sys
 import numpy as np
