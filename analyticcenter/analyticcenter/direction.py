@@ -29,9 +29,10 @@ class DirectionAlgorithm(object):
         logger = logging.getLogger(self.__class__.__name__)
 
     def _print_information(self, steps_count, residual, determinant, X):
-        self.logger.info("Current step: {}\tResidual: {}\tDet: {}".format(steps_count, residual, determinant))
-        self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
-        self.logger.debug("Current X:\n{}".format(X))
+        if (self.name == "NewtonMDCT" or self.name == "Steepest Ascent") and (steps_count < 100 or steps_count % 100 == 0):
+            self.logger.info("Current step: {}\tResidual: {}\tDet: {}".format(steps_count, residual, determinant))
+            self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
+            self.logger.debug("Current X:\n{}".format(X))
         det = np.real(determinant)
         if det < 0:
             self.logger.critical("Something went wrong. Determinant ist negative. Aborting...")
@@ -62,7 +63,7 @@ class DirectionAlgorithm(object):
             # ipdb.set_trace()
             self._print_information(steps_count, residual, determinant, X)
             if self.save_intermediate:
-                if self.intermediate_X is None:
+                if self.intermediate_X is None or steps_count == 0:
                     self.intermediate_X = []
                     self.intermediate_det = []
                 self.intermediate_X.append(X)
@@ -71,11 +72,10 @@ class DirectionAlgorithm(object):
             R = self.algorithm._get_R(X)
             self.logger.debug("Current Determinant of R: {}".format(linalg.det(R)))
 
-
             Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
-            if self.name == "NewtonMDCT" and steps_count>=20:
+            if self.name == "NewtonMDCT" and steps_count >= 20:
                 ipdb.set_trace()
-            #     Delta_X = linalg.solve(P, A_F.H)
+            # Delta_X = linalg.solve(P, A_F.H)
             #     Delta_X += Delta_X.T
             delta_cum += Delta_X
             Delta_residual = linalg.norm(Delta_X)
@@ -86,14 +86,17 @@ class DirectionAlgorithm(object):
             A_F = (self.system.A - self.system.B @ F)
             residual = self.algorithm.get_residual(X, P, F, A_F, fixed_direction)
             determinant = linalg.det(P) * self.algorithm._get_determinant_R(X)
-            # ipdb.set_trace()
+            # a = 100000
+            # if linalg.norm(residual) < 1. and steps_count % a ==a-1:
+            #     ipdb.set_trace()
             steps_count += 1
         self._print_information(steps_count, residual, determinant, X)
         if self.save_intermediate:
             self.intermediate_X = np.array(self.intermediate_X)
             self.intermediate_det = np.array(self.intermediate_det)
-        self.logger.info("Finished computation...")
-        # if self.name == "NewtonMDCT":
+        if self.name == "NewtonMDCT":
+            self.logger.info("Finished computation...")
+
         #     ipdb.set_trace()
         HX = self.algorithm._get_H_matrix(X)
         analyticcenter = AnalyticCenter(X, A_F, HX, algorithm=self.algorithm, discrete_time=self.discrete_time,

@@ -3,15 +3,14 @@ import logging
 import numpy as np
 from scipy import linalg
 
-from analyticcenter.direction import DirectionAlgorithm
-from analyticcenter.initialization import InitialXCT, InitialXDT
-import misc.misc as misc
+from .direction import DirectionAlgorithm
+from .initialization import InitialXCT, InitialXDT
 import ipdb
-from misc.control import place
+from ..misc.control import place
 import control
 from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, AnalyticCenterUnstable, \
     AnalyticCenterRiccatiSolutionFailed
-from misc.misc import symmetric_product_pos_def
+from ..misc.misc import symmetric_product_pos_def, check_positivity
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +156,7 @@ class Algorithm(object):
 
             X = - ricc[0]
 
-            if misc.check_positivity(self._get_H_matrix(X), 'X'):
+            if check_positivity(self._get_H_matrix(X), 'X'):
                 self.logger.info("System is passive, if also stable")
             else:
                 self.logger.critical("System is not passive")
@@ -198,7 +197,7 @@ class AlgorithmContinuousTime(Algorithm):
         H = self.H0 - np.bmat([[A.H @ X + X @ A, X @ B],
                                [B.H @ X, np.zeros((self.system.m, self.system.m))]])
         if self.debug:
-            misc.check_positivity(H, "H(X)")
+            check_positivity(H, "H(X)")
         return H
 
     def _get_F_and_P(self, X):

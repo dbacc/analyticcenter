@@ -4,8 +4,8 @@ import control
 import numpy as np
 from scipy import linalg
 
-from analyticcenter.direction import DirectionAlgorithm
-from analyticcenter.newton import NewtonDirectionOneDimensionCT, NewtonDirectionOneDimensionDT
+from .direction import DirectionAlgorithm
+from .newton import NewtonDirectionOneDimensionCT, NewtonDirectionOneDimensionDT
 import ipdb
 
 

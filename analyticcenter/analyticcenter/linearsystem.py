@@ -2,13 +2,12 @@ import numpy as np
 from scipy import linalg
 import logging
 import control
-import misc.misc as misc
 import scipy.io
 
 
 
 class LTI(object):
-    """Describes an LTI system"""
+    """Describes an LTI system with system matrices of the appropriate sizes"""
 
     def __init__(self, A, B, C, D):
         self.A = np.asmatrix(A)
@@ -22,7 +21,7 @@ class LTI(object):
 
 
 class WeightedSystem(LTI):
-    """Describes LTI system with weight Matrix"""
+    """Describes LTI system with weight Matrix, where Q = Q.H, R = R.H"""
 
     def __init__(self, A, B, C, D, Q, S, R):
         super().__init__(A, B, C, D)

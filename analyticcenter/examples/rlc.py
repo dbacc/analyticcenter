@@ -1,6 +1,6 @@
 import control
 import numpy as np
-from analyticcenter.linearsystem import WeightedSystem
+from analyticcenter import WeightedSystem
 
 RR = 100.  # Resistor Value
 L = 0.1e-1  # Inductance

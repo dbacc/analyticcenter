@@ -1,6 +1,6 @@
 import numpy as np
 
-from analyticcenter.linearsystem import WeightedSystem
+from analyticcenter import WeightedSystem
 
 A = np.matrix([[-1]])
 B = np.matrix([[1]])

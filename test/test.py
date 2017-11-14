@@ -1,13 +1,14 @@
 import pytest
-
-from analyticcenter.algorithm import get_algorithm_object
-from analyticcenter.newton import NewtonDirectionMultipleDimensionsCT, NewtonDirectionMultipleDimensionsDT
-from analyticcenter.exceptions import AnalyticCenterUnstable, AnalyticCenterNotPassive, \
+import analyticcenter
+from analyticcenter import get_algorithm_object
+from analyticcenter import NewtonDirectionMultipleDimensionsCT, NewtonDirectionMultipleDimensionsDT
+from analyticcenter import AnalyticCenterUnstable, AnalyticCenterNotPassive, \
     AnalyticCenterRiccatiSolutionFailed, AnalyticCenterUncontrollable
-from examples.rlc import sys as sysrlc
+
+from analyticcenter.examples.rlc import sys as sysrlc
 from test.test_examples.example1 import sys
 from test.test_examples.example4 import sys as sysuncontrollable
-from examples.cheby_filter import sys as syscheby
+from analyticcenter.examples.cheby_filter import sys as syscheby
 
 
 def test_unstable_ct():

@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.linalg as linalg
 import logging
-from misc.misc import rsolve
+from ..misc.misc import rsolve
 from slycot import ab13fd
 
 class AnalyticCenter(object):

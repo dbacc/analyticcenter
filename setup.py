@@ -9,10 +9,10 @@ setup(
     author='Daniel Bankmann',
     author_email='bankmann@math.tu-berlin.de',
     url='http://www.math.tu-berlin.de',
-    setup_requires=['pytest-runner', 'slycot', 'numpy', 'scipy'],
+    setup_requires=['pytest-runner', 'colorlog==2.10.0', 'control==0.7.0', 'matplotlib==2.0.0', 'numpy==1.13.3',
+                    'PyYAML==3.12', 'slycot==0.2.0'],
     tests_require=['pytest'],
     license='GNU',
+    packages=['analyticcenter', 'test'],
     platforms='all'
 )
-
-

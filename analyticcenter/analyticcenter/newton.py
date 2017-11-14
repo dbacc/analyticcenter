@@ -4,8 +4,8 @@ import ipdb
 import numpy as np
 from scipy import linalg
 
-from analyticcenter.direction import DirectionAlgorithm
-from misc.misc import rsolve
+from .direction import DirectionAlgorithm
+from ..misc.misc import rsolve
 
 
 class NewtonDirection(DirectionAlgorithm):
