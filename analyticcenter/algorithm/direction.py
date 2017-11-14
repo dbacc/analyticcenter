@@ -7,6 +7,9 @@ from .analyticcenter import AnalyticCenter
 
 
 class DirectionAlgorithm(object):
+    """ 
+    Base Class for all directional algorithms
+    """
     debug = True
     algorithm = None
 
@@ -39,6 +42,24 @@ class DirectionAlgorithm(object):
             raise ValueError("Something went wrong. Determinant ist negative")
 
     def _directional_iterative_algorithm(self, direction_algorithm, X0=None, fixed_direction=None):
+        """
+        
+        Base algorithm for all directional iterative algorithms. 
+        
+        Parameters
+        ----------
+        direction_algorithm :
+            
+        X0 : If X0 is set, this value will be considered as initial guess
+             (Default value = None)
+        fixed_direction : If not None, search will only be performed along a given and fixed direction
+             (Default value = None)
+
+        Returns
+        -------
+
+        (analyticcenter, success) : A tuple of an analyticcenter object and a boolean success flag
+        """
 
         if X0 is None:
             X, success_init = self.initial_X()
