@@ -10,81 +10,91 @@ import ipdb
 
 
 class InitialX(DirectionAlgorithm):
-    X0 = None
+    """Computation of Initial solution that is strictly positive for the LMI"""
     maxiter = 100
-    save_intermediate = False
 
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def __call__(self):
-        if InitialX.X0 is None:
-            self.logger.info('Computing initial X')
+        """
+        Computation of an initial strictly positive solution of the LMI.
+        We first compute two different solutions of the Riccati equation (stabilizing and anti-stabilizing).
+        Then we hope, that combining them in a clever way leads us to a point that is in the interior.
+        Here we use the geometric mean of both solutions.
 
-            X_plus = -np.asmatrix(self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
-                                          np.identity(self.system.n)))
-            Am = -self.system.A
-            Bm = self.system.B
-            Sm = self.system.S
-            Qm = -self.system.Q
-            Rm = -self.system.R
-            X_minus = -np.asmatrix(self.riccati_solver(Am, Bm, Qm, Rm, Sm,
-                                           np.identity(self.system.n)))
+        Returns
+        -------
+        Xinit : Initial solution
+
+        success : Boolean
+        """
+        self.logger.info('Computing initial X')
+
+        X_plus = -np.asmatrix(self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
+                                      np.identity(self.system.n)))
+        Am = -self.system.A
+        Bm = self.system.B
+        Sm = self.system.S
+        Qm = -self.system.Q
+        Rm = -self.system.R
+        X_minus = -np.asmatrix(self.riccati_solver(Am, Bm, Qm, Rm, Sm,
+                                       np.identity(self.system.n)))
 
 
-            if np.isclose(linalg.norm(X_plus - X_minus), 0):
-                self.logger.critical("X_+ and X_- are (almost) identical: No interior!")
-            self.logger.debug("Eigenvalues of X_plus: {}".format(linalg.eigh(X_plus)[0]))
-            self.logger.debug(
-                "Eigenvalues of H(X_plus): {}".format(linalg.eigh(self.algorithm._get_H_matrix(X_plus))[0]))
-            self.logger.debug("Eigenvalues of X_minus: {}".format(linalg.eigh(X_minus)[0]))
-            self.logger.debug(
-                "Eigenvalues of H(X_minus): {}".format(linalg.eigh(self.algorithm._get_H_matrix(X_minus))[0]))
-            if self.debug:
-                self.algorithm._get_Hamiltonian()
-            # ipdb.set_trace()
-            newton_direction = self.newton_direction
-            fixed_direction = X_minus @ linalg.sqrtm(linalg.solve(X_minus, X_plus))
-            fixed_direction = 0.5* (fixed_direction + fixed_direction.H)
-            # fixed_direction = 0.5* (X_minus + X_plus)
-            # ipdb.set_trace()
-            self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(fixed_direction)[0]))
-            self.logger.debug(
-                "Eigenvalues of H(X_init_guess): {}".format(
-                    linalg.eigh(self.algorithm._get_H_matrix(fixed_direction))[0]))
-            InitialX.X0 = fixed_direction  # We use negative definite notion of solutions for Riccati equation
-            # ipdb.set_trace()
-            self.logger.info("Improving Initial X with Newton approach")
+        if np.isclose(linalg.norm(X_plus - X_minus), 0):
+            self.logger.critical("X_+ and X_- are (almost) identical: No interior!")
+        self.logger.debug("Eigenvalues of X_plus: {}".format(linalg.eigh(X_plus)[0]))
+        self.logger.debug(
+            "Eigenvalues of H(X_plus): {}".format(linalg.eigh(self.riccati._get_H_matrix(X_plus))[0]))
+        self.logger.debug("Eigenvalues of X_minus: {}".format(linalg.eigh(X_minus)[0]))
+        self.logger.debug(
+            "Eigenvalues of H(X_minus): {}".format(linalg.eigh(self.riccati._get_H_matrix(X_minus))[0]))
+        if self.debug:
+            self.riccati._get_Hamiltonian()
+        X0 = X_minus @ linalg.sqrtm(linalg.solve(X_minus, X_plus))
+        fixed_direction = 0.5 * (X_minus + X_plus)
 
-            # ipdb.set_trace()
-            analyticcenter_init, success = self.newton_direction._directional_iterative_algorithm(
-                direction_algorithm=newton_direction._get_direction, fixed_direction=fixed_direction)
+        self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(fixed_direction)[0]))
+        self.logger.debug(
+            "Eigenvalues of H(X_init_guess): {}".format(
+                linalg.eigh(self.riccati._get_H_matrix(fixed_direction))[0]))
 
-            Xinit = analyticcenter_init.X
-            if not success:
-                self.logger.critical("Computation of initial X failed.")
-            else:
-                self.logger.debug("Eigenvalues of X_init: {}".format(linalg.eigh(Xinit)[0]))
-                self.logger.debug(
-                    "Eigenvalues of H(X_init): {}".format(linalg.eigh(self.algorithm._get_H_matrix(Xinit))[0]))
+        self.logger.info("Improving Initial X with Newton approach")
 
+        analyticcenter_init, success = self.newton_direction._directional_iterative_algorithm(
+            direction_algorithm=self.newton_direction._get_direction, fixed_direction=X0, X0=X0)
+
+        Xinit = analyticcenter_init.X
+        if not success:
+            self.logger.critical("Computation of initial X failed.")
         else:
-            # self.logger.info("Initial X is already set")
-            Xinit = self.X0
+            self.logger.debug("Eigenvalues of X_init: {}".format(linalg.eigh(Xinit)[0]))
+            self.logger.debug(
+                "Eigenvalues of H(X_init): {}".format(linalg.eigh(self.riccati._get_H_matrix(Xinit))[0]))
+
+
         return Xinit, True
 
 
 class InitialXCT(InitialX):
-    newton_direction = NewtonDirectionOneDimensionCT()
+    line_search_method = NewtonDirectionOneDimensionCT
     riccati_solver = staticmethod(lambda *args: control.care(*args)[0])
 
-    def __init__(self):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.newton_direction = self.line_search_method(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
+
 
 
 class InitialXDT(InitialX):
-    newton_direction = NewtonDirectionOneDimensionDT()
+    line_search_method = NewtonDirectionOneDimensionDT
     riccati_solver = staticmethod(lambda *args: control.dare(*args)[0])
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.newton_direction = self.line_search_method(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
+

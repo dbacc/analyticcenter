@@ -9,14 +9,36 @@ from ..misc.misc import rsolve
 
 
 class NewtonDirection(DirectionAlgorithm):
+    """ """
     name = "Newton"
-    newton_direction = None
+    line_search_method = None
     line_search = False
 
-    def __init__(self):
-        raise NotImplementedError("Should not be called from Base class")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def _get_direction(self, X0, P0, R0, A_F, fixed_direction=None):
+        """
+        Computes the next increment Delta_X. If self.line_search is True, a 1d line-search will be performed in addition.
+
+        Parameters
+        ----------
+        X0 : Current X0
+            
+        P0 : Current P0
+            
+        R0 : Current R0
+            
+        A_F : Current A_F
+            
+        fixed_direction : If not None, computation is only done along a 1d subspace spanned by fixed_direction
+             (Default value = None)
+
+        Returns
+        -------
+        Delta_X :  The next increment
+
+        """
         self.fixed_direction = fixed_direction
         A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0, R0)
 
@@ -26,7 +48,6 @@ class NewtonDirection(DirectionAlgorithm):
 
         if self.line_search:
             X0 = Delta_X + X0
-            # ipdb.set_trace()
             analyticcenter_new, success = self.newton_direction._directional_iterative_algorithm(
                 direction_algorithm=self.newton_direction._get_direction, fixed_direction=Delta_X, X0=X0)
             Delta_X += analyticcenter_new.delta_cum
@@ -34,6 +55,26 @@ class NewtonDirection(DirectionAlgorithm):
         return Delta_X
 
     def _transform_system2current_X0(self, A_F, P0, R0):
+        """
+        Transforms the system to another coordinate system, in which a trivial Delta corresponds to staying at the
+        current position and thus formulas are simpler (see paper for details).
+        Parameters
+        ----------
+        A_F : Current A_F
+            
+        P0 : Current P0
+            
+        R0 : Current R0
+            
+
+        Returns
+        -------
+        A_F_hat : Transformed A_F
+
+        P0_root : Square root of the current P0
+
+        S2 : Matrix corresponding to the quadratic terms in X_hat of det(H_hat(X_hat))
+        """
         P0_root = linalg.sqrtm(P0)
         R0_root = linalg.sqrtm(R0)
         B_hat = P0_root @ self.system.B
@@ -46,36 +87,58 @@ class NewtonDirection(DirectionAlgorithm):
     def _splitting_method(self, A, S, P0_root):
         raise NotImplementedError
 
+    def _newton_step_solver(self, A, S, P0_root):
+        """
+        Computes the Newton step in the transformed coordinate frame.
+
+        Parameters
+        ----------
+        A : Current A
+
+        S : Matrix corresponding to the quadratic terms in X_hat of det(H_hat(X_hat))
+
+        P0_root : Square root of the current P0
+
+
+        Returns
+        -------
+        Delta_X_hat : Newton step in the transformed coordinate frame
+        """
+        raise NotImplementedError
+
 
 class NewtonDirectionOneDimensionCT(NewtonDirection):
-    fixed_direction = None
+    """Subclass for computing the Newton step in the one-dimensional continuous-time case"""
     maxiter = 5
+    discrete_time = False
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     # TODO: Check Formula: Slow convergence!!
     def _newton_step_solver(self, A, S, P0_root):
+        self.condition = np.linalg.cond(P0_root) ** 2
         search_dir = linalg.solve(P0_root, rsolve(P0_root, self.fixed_direction))
         self.logger.debug("Search direction: {}".format(self.fixed_direction))
         # search_dir = self.fixed_direction
         correction = -(np.real(np.trace(search_dir @ A + A.H @ search_dir)) / (2. * np.real(
             np.trace(search_dir @ S @ search_dir)) + 1. * linalg.norm(
             search_dir @ A + A.H @ search_dir) ** 2))
-        # if np.isclose(correction,0.):
-        #     ipdb.set_trace()
         return correction * search_dir
 
 
 class NewtonDirectionOneDimensionDT(NewtonDirection):
-    fixed_direction = None
+    """Subclass for computing the Newton step in the one-dimensional discrete-time case"""
     maxiter = 5
+    discrete_time = True
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    # TODO: Check Formula: Slow convergence!!
     def _newton_step_solver(self, A, S, P0_root):
+        self.condition = np.linalg.cond(P0_root)
         n = self.system.n
         identity = np.identity(n)
         AAH = A @ A.H
@@ -87,22 +150,25 @@ class NewtonDirectionOneDimensionDT(NewtonDirection):
 
 
 class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
+    """Subclass for computing the Newton step in the multi-dimensional continuous-time case"""
     name = "NewtonMDCT"
-    newton_direction = NewtonDirectionOneDimensionCT()
+    line_search_method = NewtonDirectionOneDimensionCT
     line_search = False
+    discrete_time = False
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        self.newton_direction = self.line_search_method(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _newton_step_solver(self, A, S, P0_root):
-        '''solve newton step using kronecker products. Will be way too expensive in general!'''
         # TODO: use Schur Form
         rhs = -np.ravel(A + A.H)
         AAH = A @ A.H
         n = self.system.n
         identity = np.identity(n)
         lhs = np.kron(A.T, A) + np.kron(np.conj(A), A.H) + np.kron(identity, AAH) + np.kron(AAH.T,
-                                                                                              identity) + np.kron(
+                                                                                            identity) + np.kron(
             identity, S) + np.kron(S, identity)
 
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
@@ -110,7 +176,8 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         self.logger.debug("Solution Delta:\n{}".format(Delta))
         Delta = np.reshape(Delta, [n, n])
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
-        Delta = 0.5*(Delta + Delta.H)
+        Delta = 0.5 * (Delta + Delta.H)
+        self.condition = np.linalg.cond(lhs)
         # check if indeed solution:
 
         if self.debug:
@@ -120,6 +187,7 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         return Delta
 
     def _check(self, A, S, Delta):
+        """Convenience function for debugging, whether Newton equation is solved accurately."""
         AAH = A @ A.H
         n = self.system.n
         identity = np.identity(n)
@@ -127,16 +195,19 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         self.logger.debug("norm of the residual: {}".format(linalg.norm(res)))
         det_factor = linalg.det(identity - Delta @ A - A.H @ Delta - Delta @ S @ Delta)
         if det_factor < 1.:
-            self.logger.critical("det factor by newton step is less than 1: {}".format(det_factor))
+            self.logger.warning("det factor by newton step is less than 1: {}".format(det_factor))
         else:
             self.logger.debug("det factor by newton step: {}".format(det_factor))
 
 
 class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
+    """Subclass for computing the Newton step in the multi-dimensional continuous-time case with an iterative algorithm"""
+    discrete_time = False
     maxiter_newton = 200
     tol_newton = 10 ** -10
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _newton_step_solver(self, A, S, P0_root):
@@ -160,11 +231,16 @@ class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
 
 
 class NewtonDirectionMultipleDimensionsDT(NewtonDirection):
-    def __init__(self):
+    """Subclass for computing the Newton step in the multi-dimensional discrete-time case"""
+    discrete_time = True
+    line_search_method = NewtonDirectionOneDimensionDT
+
+    def __init__(self, *args, **kwargs):
+        self.newton_direction = self.line_search_method(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _newton_step_solver(self, A, S, P0_root):
-        '''solve newton step using kronecker products. Will be way too expensive in general!'''
         # TODO: use Schur Form
 
         AAH = A @ A.H
@@ -178,7 +254,7 @@ class NewtonDirectionMultipleDimensionsDT(NewtonDirection):
         self.logger.debug("Solution Delta:\n{}".format(Delta))
         Delta = np.reshape(Delta, [n, n])
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
-
+        self.condition = np.linalg.cond(lhs)
         # check if indeed solution:
         # ipdb.set_trace()
         if self.debug:

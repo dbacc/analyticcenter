@@ -3,7 +3,7 @@ from scipy import linalg
 import logging
 import ipdb
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 def rsolve(*args, **kwargs):

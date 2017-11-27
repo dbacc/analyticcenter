@@ -11,29 +11,33 @@ class DirectionAlgorithm(object):
     Base Class for all directional algorithms
     """
     debug = True
-    algorithm = None
+    discrete_time = None
+    maxiter = None
 
-    system = None
-    initial_X = None
-    discrete_time = False
-    maxiter = 100
-    fixed_direction = None
-    save_intermediate = False
-    intermediate_X = None
-    intermediate_det = None
-    name = None
-
-    def __init__(self, ac_object, discrete_time, save_intermediate=False):
-        DirectionAlgorithm.algorithm = ac_object
-        DirectionAlgorithm.system = ac_object.system
-
-        DirectionAlgorithm.discrete_time = discrete_time
-        DirectionAlgorithm.save_intermediate = save_intermediate
+    def __init__(self, riccati, initializer, abs_tol=np.finfo(float).eps, delta_tol=0., maxiter=100,
+                 save_intermediate=False):
+        self.riccati = riccati
+        self.system = riccati.system
+        self.abs_tol = abs_tol
+        self.delta_tol = delta_tol
+        if self.maxiter is None:
+            self.maxiter = maxiter
+        self.condition = 1. #TODO compute only every few steps.
+        self.save_intermediate = save_intermediate
+        if initializer is None:
+            self.initializer = None
+        else:
+            self.initializer = initializer(riccati, None)
+        if self.save_intermediate:
+            self.intermediate_X = []
+            self.intermediate_det = []
         logger = logging.getLogger(self.__class__.__name__)
+        self.steps_count = 0
 
-    def _print_information(self, steps_count, residual, determinant, X):
-        if (self.name == "NewtonMDCT" or self.name == "Steepest Ascent") and (steps_count < 100 or steps_count % 100 == 0):
-            self.logger.info("Current step: {}\tResidual: {}\tDet: {}".format(steps_count, residual, determinant))
+    def _print_information(self, residual, determinant, X):
+        if (self.debug or self.logger.level == 0 or self.name == "NewtonMDCT" or self.name == "Steepest Ascent") and (
+                        self.steps_count < 100 or self.steps_count % 100 == 0):
+            self.logger.info("Current step: {}\tResidual: {}\tDet: {}".format(self.steps_count, residual, determinant))
             self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
             self.logger.debug("Current X:\n{}".format(X))
         det = np.real(determinant)
@@ -62,77 +66,61 @@ class DirectionAlgorithm(object):
         """
 
         if X0 is None:
-            X, success_init = self.initial_X()
+            X, success_init = self.initializer()
         else:
             X, success_init = (X0, True)
         self.logger.debug("Initial X:\n{}".format(X))
         delta_cum = 0 * X
-        F, P = self.algorithm._get_F_and_P(X)
-
-        determinant = linalg.det(P) * self.algorithm._get_determinant_R(X)
-        A_F = (self.system.A - self.system.B @ F)
-        steps_count = 0
-        residual = self.algorithm.get_residual(X, P, F, A_F, fixed_direction)
+        P, R, F, A_F, residual, determinant = self.riccati.characteristics(X)
         Delta_residual = float("inf")
-        # ipdb.set_trace()
         alpha = 1.
-        # ipdb.set_trace()
-        while residual > self.algorithm.abs_tol and Delta_residual > self.algorithm.rel_tol and steps_count < self.maxiter:
-            # ipdb.set_trace()
-            if self.debug:
-                self.algorithm._get_H_matrix(X)
-            # ipdb.set_trace()
-            self._print_information(steps_count, residual, determinant, X)
+        while residual > 10. * self.abs_tol * self.condition  and Delta_residual > self.delta_tol and self.steps_count < self.maxiter:
+            self._print_information(residual, determinant, X)
             if self.save_intermediate:
-                if self.intermediate_X is None or steps_count == 0:
-                    self.intermediate_X = []
-                    self.intermediate_det = []
-                self.intermediate_X.append(X)
-                self.intermediate_det.append(determinant)
-
-            R = self.algorithm._get_R(X)
-            self.logger.debug("Current Determinant of R: {}".format(linalg.det(R)))
+                self._save_intermediate(X, determinant)
 
             Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
-            if self.name == "NewtonMDCT" and steps_count >= 20:
-                ipdb.set_trace()
-            # Delta_X = linalg.solve(P, A_F.H)
-            #     Delta_X += Delta_X.T
             delta_cum += Delta_X
             Delta_residual = linalg.norm(Delta_X)
             X = X + alpha * Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
-
-            F, P = self.algorithm._get_F_and_P(X)
-            A_F = (self.system.A - self.system.B @ F)
-            residual = self.algorithm.get_residual(X, P, F, A_F, fixed_direction)
-            determinant = linalg.det(P) * self.algorithm._get_determinant_R(X)
-            # a = 100000
-            # if linalg.norm(residual) < 1. and steps_count % a ==a-1:
-            #     ipdb.set_trace()
-            steps_count += 1
-        self._print_information(steps_count, residual, determinant, X)
+            P, R, F, A_F, residual, determinant = self.riccati.characteristics(X, fixed_direction)
+            self.steps_count += 1
+        self._print_information(residual, determinant, X)
         if self.save_intermediate:
-            self.intermediate_X = np.array(self.intermediate_X)
-            self.intermediate_det = np.array(self.intermediate_det)
-        if self.name == "NewtonMDCT":
-            self.logger.info("Finished computation...")
+            self._save_intermediate(X, determinant)
 
-        #     ipdb.set_trace()
-        HX = self.algorithm._get_H_matrix(X)
-        analyticcenter = AnalyticCenter(X, A_F, HX, algorithm=self.algorithm, discrete_time=self.discrete_time,
+        HX = self.riccati._get_H_matrix(X)
+        analyticcenter = AnalyticCenter(X, A_F, HX, algorithm=self.riccati, discrete_time=self.discrete_time,
                                         delta_cum=delta_cum)
-        if residual <= self.algorithm.abs_tol or Delta_residual <= self.algorithm.rel_tol:
-            if Delta_residual <= self.algorithm.rel_tol:
-                # ipdb.set_trace()
+        if residual <= 10. * self.abs_tol * self.condition or Delta_residual <= self.delta_tol:
+            if Delta_residual <= self.delta_tol:
                 self.logger.warning(
-                    "Residual of Delta: {} is below tolerance {}".format(Delta_residual, self.algorithm.rel_tol))
+                    "Residual of Delta: {} is below tolerance {}".format(Delta_residual, self.delta_tol))
             return (analyticcenter, True)
         else:
-            self.logger.critical("Computation failed.")
+            self.logger.error("Computation failed. Maximal number of steps reached.")
             return (analyticcenter, False)
 
+    def _save_intermediate(self, X, determinant):
+            self.intermediate_X.append(X)
+            self.intermediate_det.append(determinant)
+
     def __call__(self, X0=None):
+        """
+        Wrapper function for directional algorithm that does all the logging.
+
+        Parameters
+        ----------
+
+        X0 : If X0 is set, this value will be considered as initial guess
+             (Default value = None)
+
+        Returns
+        -------
+
+        (analyticcenter, success) : A tuple of an analyticcenter object and a boolean success flag
+        """
         self.logger.info("Computing Analytic Center with {} approach".format(self.name))
         analyticcenter, success = self._directional_iterative_algorithm(direction_algorithm=self._get_direction, X0=X0)
         if success:

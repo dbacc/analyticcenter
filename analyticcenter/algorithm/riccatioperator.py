@@ -1,63 +1,65 @@
 import logging
 
+import control
 import numpy as np
 from scipy import linalg
 
-from .direction import DirectionAlgorithm
-from .initialization import InitialXCT, InitialXDT
-import ipdb
-from ..misc.control import place
-import control
 from .exceptions import AnalyticCenterNotPassive, AnalyticCenterUncontrollable, AnalyticCenterUnstable, \
     AnalyticCenterRiccatiSolutionFailed
+from ..misc.control import place
 from ..misc.misc import symmetric_product_pos_def, check_positivity
 
 logger = logging.getLogger(__name__)
 
 
-def get_algorithm_object(*args, **kwargs):
-    discrete_time = kwargs.get('discrete_time')
-    if discrete_time is None:
-        discrete_time = False
-        kwargs['discrete_time'] = False
-        logger.warning("No system type given. Defaulting to continuous time.")
-    if discrete_time:
-        return AlgorithmDiscreteTime(*args, **kwargs)
-    else:
-        return AlgorithmContinuousTime(*args, **kwargs)
-
-
-class Algorithm(object):
-    """ToDo"""
+class RiccatiOperator(object):
+    """Base RiccatiOperator class. Provides Templates for the functions needed later on"""
     debug = True
     logger = logging.getLogger(__name__)
 
-    def __init__(self, system, abs_tol=1.e-5, rel_tol=1.e-20, discrete_time=False, save_intermediate=False):
+    def __init__(self, system):
         self.system = system
         self.X0 = None
         self.H0 = None
         self.H = None
-        self.abs_tol = abs_tol
-        self.rel_tol = rel_tol
-        self.maxiter = 100
         self.__init_H0()
-        self.debug = True
         self.check_stability()
         self.check_controllability()
         self.check_passivity()
-        DirectionAlgorithm(self, self.discrete_time, save_intermediate)
-        if discrete_time:
-            DirectionAlgorithm.initial_X = InitialXDT()
-        else:
-            DirectionAlgorithm.initial_X = InitialXCT()
 
     def __init_H0(self):
+        """Initializes the inhomogeinity of the inequality"""
         self.H0 = np.bmat([[self.system.Q, self.system.S], [self.system.S.H, self.system.R]])
 
     def _get_Delta_H(self, Delta_X):
+        """
+
+        Parameters
+        ----------
+        Delta_X : Change in X. Assumed to be Hermitian.
+            
+
+        Returns
+        -------
+        Change in H(X).
+        
+        """
         return self._get_H_matrix(Delta_X) - self.H0
 
     def gradient_sweep(self, X):
+        """
+        Generates gradients in every basis direction and computes the maximal ascent among those. Can be used for
+        debugging purposes
+
+        Parameters
+        ----------
+        X : Current solution
+            
+
+        Returns
+        -------
+        index of direction (i,j) in which ascent is maximal
+        """
         H = self._get_H_matrix(X)
         Hinv = np.asmatrix(linalg.inv(H))
         dimension = self.system.n
@@ -77,6 +79,23 @@ class Algorithm(object):
         return np.unravel_index(np.argmax(np.abs(grad)), grad.shape)
 
     def sample_direction(self, X, determinant_start, residual_start):
+        """
+        Generates gradients in every basis direction and computes the maximal ascent among those also considering the 
+        length of the step in that direction. Can be used for debugging purposes
+        
+        Parameters
+        ----------
+        X : Current solution
+            
+        determinant_start : current value of the determinant
+            
+        residual_start : current value of the residual
+            
+
+        Returns
+        -------
+
+        """
         dimension = self.system.n
         detsave = 0
         for i in np.arange(dimension):
@@ -107,28 +126,110 @@ class Algorithm(object):
                                 self.logger.info("Improvement!")
                                 detsave = determinant - determinant_start
 
-    def _get_H_matrix(self, X: np.matrix):
+    def _get_H_matrix(self, X):
+        """
+        Computes the matrix H(X) for given X.
+
+        Parameters
+        ----------
+        X: Current solution
+
+
+        Returns
+        -------
+        H(X)
+        """
         raise NotImplementedError
 
     def _get_F_and_P(self, X):
+        """
+        Computes current Feedback matrix and Riccati residual
+
+        Parameters
+        ----------
+        X : Current solution
+
+
+        Returns
+        -------          
+        F : Current Feedback matrix
+
+        P : Current residual matrix P = Ricc(X)
+
+        """
         raise NotImplementedError
 
-    def get_residual(self, X, P, F, A_F):
-        raise NotImplementedError
 
     def riccati_operator(self, X, F=None):
+        """
+        Computes the residual of the Riccati operator P = Ricc(X). If F is already known, computation effort can be
+        saved.
+        
+        Parameters
+        ----------
+        X : Current solution
+
+        F : Current feedback matrix
+             (Default value = None)
+
+        Returns
+        -------
+        P = Ricc(X)
+        """
         raise NotImplementedError
 
     def _get_R(self, X):
+        """
+        Returns the current value of the 2,2 block of H(X). Is constant if discrete_time == False.
+        Parameters
+        ----------
+        X : Current solution
+
+        Returns
+        -------
+        [ 0 I]^T  @ H(X) @ [ 0 I ]
+        """
         raise NotImplementedError
 
     def _get_determinant_R(self, X):
-        raise NotImplementedError
+        """
+        Computes the current determinant H(X), i.e., objective value at given X
+        Parameters
+        ----------
+        X : Current solution
+
+
+        Returns
+        -------
+        det(H(X))
+        """
+        if self._determinant_R is None:
+            self._determinant_R = linalg.det(self._get_R(X))
+        return self._determinant_R
 
     def _eig_stable(self):
+        """
+        Computes whether the eigenvalues of the system matrix A are in the stable region, i.e., in the left-half of the
+        complex plane for continuous time systems, or inside the unit disk in the discrete time case.
+
+        Returns
+        -------
+        Boolean
+        """
+        raise NotImplementedError
+
+    def _get_res(self, X, P, F, A_F, Delta=None):
+        __doc__ = self.get_residual.__doc__
         raise NotImplementedError
 
     def check_stability(self):
+        """Checks whether the system is stable.
+        
+         Returns
+        -------
+        Boolean
+        """
+
         eigs = np.linalg.eig(self.system.A)[0]
         if self._eig_stable(eigs):
             self.logger.info("System is stable")
@@ -139,17 +240,28 @@ class Algorithm(object):
             return False
 
     def check_controllability(self):
+        """Checks whether the system is controllable.
+
+         Returns
+        -------
+        Boolean
+        """
         poles = np.random.rand(self.system.n)
         F, nup, warn = place(self.system.A, self.system.B, poles)
         if nup > 0 or warn != 0:
             self.logger.critical("System is not controllable. Aborting.")
             raise AnalyticCenterUncontrollable("System is not controllable.")
-            return False
         else:
             self.logger.info("System is controllable.")
             return True
 
     def check_passivity(self):
+        """Checks whether the system is passive.
+
+         Returns
+        -------
+        Boolean
+        """
         try:
             ricc = self.riccati_solver(self.system.A, self.system.B, self.system.Q, self.system.R, self.system.S,
                                        np.identity(self.system.n))
@@ -158,15 +270,38 @@ class Algorithm(object):
 
             if check_positivity(self._get_H_matrix(X), 'X'):
                 self.logger.info("System is passive, if also stable")
+                return True
             else:
                 self.logger.critical("System is not passive")
                 raise AnalyticCenterNotPassive("System is not passive")
+
         except ValueError as e:
             self.logger.critical(
                 "Riccati solver for passivity check did not succeed with message:\n{}".format(e.args[0]))
             raise AnalyticCenterRiccatiSolutionFailed("Riccati solver for passivity check did not succeed")
 
     def get_residual(self, X, P, F, A_F, Delta=None):
+        """ Returns the residual of the gradient of log(det(H(X))).
+         If Delta is given, the gradient is computed in direction of Delta. Otherwise, the residual of the corresponding
+         linear matrix operator is checked.
+
+        Parameters
+        ----------
+        X : Current solution
+            
+        P : Current residual matrix P = Ricc(X)
+            
+        F : Current Feedback matrix
+            
+        A_F : = A - B @ F 
+            
+        Delta : Direction of change, if not None 
+             (Default value = None)
+
+        Returns
+        -------
+        norm of the residual
+        """
         res = self._get_res(X, P, F, A_F, Delta)
         # self.logger.debug("res: {}".format(res))
         if Delta is None:
@@ -174,15 +309,43 @@ class Algorithm(object):
         else:
             return np.abs(np.real(np.trace(res @ Delta)))
 
-    def next_step(self, X):
+    def characteristics(self, X, Delta=None):
+        """
+        Computes all characteristic values for a given X.
+
+        Parameters
+        ----------
+        X : Current solution
+
+        Delta : Direction of change, if not None
+             (Default value = None)
+            
+
+        Returns
+        -------     
+        P : Current residual matrix P = Ricc(X)
+            
+        F : Current Feedback matrix
+            
+        A_F : = A - B @ F 
+        
+        residual: The current residual of the gradient equation
+        
+        determinant: The current determinant of H(X)
+
+        """
         F, P = self._get_F_and_P(X)
         A_F = (self.system.A - self.system.B @ F)
-        residual = self.get_residual(X, P, F, A_F)
-        determinant = linalg.det(P) * self._get_determinant_R(X)
-        return F, P, A_F, residual, determinant
+        residual = self.get_residual(X, P, F, A_F, Delta)
+        detR = self._get_determinant_R(X)
+        R = self._R
+        determinant = linalg.det(P) * detR
+        self.logger.debug("Current Determinant of R: {}".format(detR))
+        return P, R, F, A_F, residual, determinant
 
 
-class AlgorithmContinuousTime(Algorithm):
+class RiccatiOperatorContinuousTime(RiccatiOperator):
+    """Child class that defines all the methods of RiccatiOperator class tailored to the continous time"""
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = False
     riccati_solver = staticmethod(control.care)
@@ -191,7 +354,8 @@ class AlgorithmContinuousTime(Algorithm):
         super().__init__(*args, **kwargs)
         self._determinant_R = None
 
-    def _get_H_matrix(self, X: np.matrix):
+    def _get_H_matrix(self, X):
+
         A = self.system.A
         B = self.system.B
         H = self.H0 - np.bmat([[A.H @ X + X @ A, X @ B],
@@ -206,6 +370,7 @@ class AlgorithmContinuousTime(Algorithm):
         return F, P
 
     def _get_res(self, X, P, F, A_F, Delta=None):
+
         if Delta is None:
             res = P @ A_F
         else:
@@ -224,14 +389,14 @@ class AlgorithmContinuousTime(Algorithm):
         return Ricc
 
     def _get_R(self, X):
-        return self.system.R
+        self._R = self.system.R
+        return self._R
 
-    def _get_determinant_R(self, X):
-        if self._determinant_R is None:
-            self._determinant_R = linalg.det(self.system.R)
-        return self._determinant_R
+
 
     def _get_Hamiltonian(self):
+        """Computes the associated Hamiltonian matrix and prints the eigenvalues. Used for debugging purposes only.
+        """
         A = self.system.A
         B = self.system.B
         Q = self.system.Q
@@ -247,7 +412,8 @@ class AlgorithmContinuousTime(Algorithm):
         return np.max(np.real(eigs)) < 0
 
 
-class AlgorithmDiscreteTime(Algorithm):
+class RiccatiOperatorDiscreteTime(RiccatiOperator):
+    """Child class that defines all the methods of RiccatiOperator class tailored to the discrete time"""
     # TODO: Improve performance by saving intermediate results where appropriate
     discrete_time = True
     riccati_solver = staticmethod(control.dare)
@@ -261,7 +427,7 @@ class AlgorithmDiscreteTime(Algorithm):
         H = self.H0 - np.bmat([[A.H @ X @ A - X, A.H @ X @ B],
                                [B.H @ X @ A, B.H @ X @ B]])
         if self.debug:
-            misc.check_positivity(H, "H(X)")
+            check_positivity(H, "H(X)")
         return H
 
     def _get_F_and_P(self, X):
@@ -288,10 +454,9 @@ class AlgorithmDiscreteTime(Algorithm):
         return Ricc
 
     def _get_R(self, X):
-        return self.system.R - self.system.B.H @ X @ self.system.B
+        self._R = self.system.R - self.system.B.H @ X @ self.system.B
+        return self._R
 
-    def _get_determinant_R(self, X):
-        return linalg.det(self.system.R - self.system.B.H @ X @ self.system.B)
 
     def _eig_stable(self, eigs):
         return np.max(np.abs(eigs)) < 1

@@ -9,25 +9,27 @@ from .newton import NewtonDirectionOneDimensionCT, NewtonDirectionOneDimensionDT
 
 
 class SteepestAscentDirection(DirectionAlgorithm):
+    """Class for the computation of the next iterate with the method of steepest ascent."""
     name = "Steepest Ascent"
     newton = None
     maxiter = 10000
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _get_direction(self, X, P, R, A_F, fixed_direction=None):
         Delta = self._get_Delta(X, P, R, A_F)
-        # ipdb.set_trace()
         (ac, success) = self.newton._directional_iterative_algorithm(direction_algorithm=self.newton._get_direction, X0=X, fixed_direction=Delta)
 
         return ac.delta_cum
 
 
 class SteepestAscentDirectionCT(SteepestAscentDirection):
-    newton = NewtonDirectionOneDimensionCT()
+    discrete_time = False
+    line_search_method = NewtonDirectionOneDimensionCT
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        self.newton_direction = self.line_search_method(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _get_Delta(self, X, P, R, A):
@@ -37,7 +39,12 @@ class SteepestAscentDirectionCT(SteepestAscentDirection):
 
 
 class SteepestAscentDirectionDT(SteepestAscentDirection):
-    newton = NewtonDirectionOneDimensionDT()
+    discrete_time = True
+    line_search_method = NewtonDirectionOneDimensionDT
+
+    def __init__(self, *args, **kwargs):
+        self.newton_direction = self.line_search_method(*args, **kwargs)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def _get_Delta(self, X, P, R, A):
         B = self.system.B
