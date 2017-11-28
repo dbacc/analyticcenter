@@ -36,14 +36,13 @@ sys = WeightedSystem(A, B, C, D, Q, B, D + D.T)
 
 ```python
 from analyticcenter import get_algorithm_object
-from analyticcenter import NewtonDirectionMultipleDimensionsCT
-from analyticcenter.examples.example3 import sys
+
+from analyticcenter.examples.example2 import sys
 
 if __name__ == "__main__":
-    alg = get_algorithm_object(sys, discrete_time=False, save_intermediate=True, abs_tol=9e-12)
-    direction_method1 = NewtonDirectionMultipleDimensionsCT()
-    direction_method1.maxiter = 40
-    (ac, success) = direction_method1()
+
+    alg = get_algorithm_object(sys, 'newton', discrete_time=False, save_intermediate=True)
+    alg()
 ```
 
 * The resulting _analytic center_ object `ac` contains data and methods for analyzing the system at the analytic center.
