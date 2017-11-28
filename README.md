@@ -31,7 +31,9 @@ D = C @ B
 Q = np.zeros((2,2))
 sys = WeightedSystem(A, B, C, D, Q, B, D + D.T)
 ```
+
 * Then one has to create an algorithm object, where you have to define the type of the system (discrete, continuous) and you can optionally provide some tolerances.
+
 ```python
 from analyticcenter import get_algorithm_object
 from analyticcenter import NewtonDirectionMultipleDimensionsCT
@@ -43,6 +45,7 @@ if __name__ == "__main__":
     direction_method1.maxiter = 40
     (ac, success) = direction_method1()
 ```
+
 * The resulting _analytic center_ object `ac` contains data and methods for analyzing the system at the analytic center.
 
 ## Tests
