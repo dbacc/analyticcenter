@@ -60,5 +60,7 @@ See the provided license file.
 
 ## Author
 Daniel Bankmann
+
 Technische Universität Berlin
+
 bankmann@math.tu-berlin.de
