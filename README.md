@@ -59,6 +59,6 @@ Uses pythons `logging` module. Configuration can be found in `config/config.yaml
 See the provided license file.
 
 ## Author
-Daniel Bankmann\
-Technische Universität Berlin\
+Daniel Bankmann
+Technische Universität Berlin
 bankmann@math.tu-berlin.de
