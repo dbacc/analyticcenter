@@ -120,7 +120,7 @@ class NewtonDirection(DirectionAlgorithm):
 
 class NewtonDirectionOneDimensionCT(NewtonDirection):
     """Subclass for computing the Newton step in the one-dimensional continuous-time case"""
-    maxiter = 5
+    maxiter = 10
     discrete_time = False
 
     def __init__(self, *args, **kwargs):
@@ -141,7 +141,7 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
 
 class NewtonDirectionOneDimensionDT(NewtonDirection):
     """Subclass for computing the Newton step in the one-dimensional discrete-time case"""
-    maxiter = 5
+    maxiter = 50
     discrete_time = True
 
     def __init__(self, *args, **kwargs):

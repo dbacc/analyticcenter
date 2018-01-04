@@ -33,21 +33,31 @@ class DirectionAlgorithm(object):
         self.delta_tol = delta_tol
         if self.maxiter is None:
             self.maxiter = maxiter
-        self.condition = 1. #TODO compute only every few steps.
+        self.condition = 1.  # TODO compute only every few steps.
         self.save_intermediate = save_intermediate
         if initializer is None:
             self.initializer = None
         else:
             self.initializer = initializer(riccati, None)
+        self._init_algorithm()
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.addFilter(self._context_log_filter)
+
+    def _context_log_filter(self, record):
+        if self.steps_count < 100 or self.steps_count % 100 == 0:
+            return "One" not in record.name
+        else:
+            return False
+
+    def _init_algorithm(self):
         if self.save_intermediate:
             self.intermediate_X = []
             self.intermediate_det = []
-        logger = logging.getLogger(self.__class__.__name__)
         self.steps_count = 0
 
     def _print_information(self, residual, determinant, X):
         if (self.debug or self.logger.level == 0 or self.name == "NewtonMDCT" or self.name == "Steepest Ascent") and (
-                        self.steps_count < 100 or self.steps_count % 100 == 0):
+                self.steps_count < 100 or self.steps_count % 100 == 0):
             self.logger.info("Current step: {}\tResidual: {}\tDet: {}".format(self.steps_count, residual, determinant))
             self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
             self.logger.debug("Current X:\n{}".format(X))
@@ -85,7 +95,7 @@ class DirectionAlgorithm(object):
         P, R, F, A_F, residual, determinant = self.riccati.characteristics(X)
         Delta_residual = float("inf")
         alpha = 1.
-        while residual > 10. * self.abs_tol * self.condition  and Delta_residual > self.delta_tol and self.steps_count < self.maxiter:
+        while residual > 10. * self.abs_tol * self.condition and Delta_residual > self.delta_tol and self.steps_count < self.maxiter:
             self._print_information(residual, determinant, X)
             if self.save_intermediate:
                 self._save_intermediate(X, determinant)
@@ -114,8 +124,8 @@ class DirectionAlgorithm(object):
             return (analyticcenter, False)
 
     def _save_intermediate(self, X, determinant):
-            self.intermediate_X.append(X)
-            self.intermediate_det.append(determinant)
+        self.intermediate_X.append(X)
+        self.intermediate_det.append(determinant)
 
     def __call__(self, X0=None):
         """
