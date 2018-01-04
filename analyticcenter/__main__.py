@@ -15,6 +15,6 @@ from analyticcenter.examples.example2 import sys
 
 if __name__ == "__main__":
 
-    alg = get_algorithm_object(sys, 'steepestascent', discrete_time=False, save_intermediate=True)
+    alg = get_algorithm_object(sys, 'newton', discrete_time=False, save_intermediate=True)
     alg()
 

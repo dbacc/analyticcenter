@@ -22,7 +22,7 @@ from .newton import NewtonDirectionOneDimensionCT, NewtonDirectionOneDimensionDT
 class SteepestAscentDirection(DirectionAlgorithm):
     """Class for the computation of the next iterate with the method of steepest ascent."""
     name = "Steepest Ascent"
-    maxiter = 100000
+    maxiter = 1000000
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

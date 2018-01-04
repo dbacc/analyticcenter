@@ -24,9 +24,43 @@ class NewtonDirection(DirectionAlgorithm):
     name = "Newton"
     line_search_method = None
     line_search = False
+    multi_dimensional = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def _get_stepzise(self, Delta, A):
+        """
+        Determines the stepsize that should be used in the Newton step. If lamb > 0.25 a damped Newton method should be
+        used.
+
+
+        Parameters
+        ----------
+        Delta : The solution of the Newton step
+        A : The transformed matrix in the Newton step
+
+        Returns
+        -------
+        step size of the Newton step
+
+        """
+
+        if self.multi_dimensional:
+            disc = np.real(np.trace((A + A.H).H @ Delta))
+            if disc < 0:
+                lambd = 0
+            else:
+                lambd = np.sqrt(disc)
+            if lambd > 0.25:
+                self.logger.info("In linearly converging phase")
+                return 1 + lambd
+            else:
+                return 1.
+        else:
+            return 1.
+
+
 
     def _get_direction(self, X0, P0, R0, A_F, fixed_direction=None):
         """
@@ -63,7 +97,9 @@ class NewtonDirection(DirectionAlgorithm):
                 direction_algorithm=self.newton_direction._get_direction, fixed_direction=Delta_X, X0=X0)
             Delta_X += analyticcenter_new.delta_cum
 
-        return Delta_X
+        alpha = self._get_stepzise(Delta_X, A_F_hat)
+
+        return alpha * Delta_X
 
     def _transform_system2current_X0(self, A_F, P0, R0):
         """
@@ -122,6 +158,9 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
     """Subclass for computing the Newton step in the one-dimensional continuous-time case"""
     maxiter = 10
     discrete_time = False
+    multi_dimensional = False
+
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -143,6 +182,7 @@ class NewtonDirectionOneDimensionDT(NewtonDirection):
     """Subclass for computing the Newton step in the one-dimensional discrete-time case"""
     maxiter = 50
     discrete_time = True
+    multi_dimensional = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

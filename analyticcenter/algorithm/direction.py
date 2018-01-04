@@ -94,7 +94,7 @@ class DirectionAlgorithm(object):
         delta_cum = 0 * X
         P, R, F, A_F, residual, determinant = self.riccati.characteristics(X)
         Delta_residual = float("inf")
-        alpha = 1.
+
         while residual > 10. * self.abs_tol * self.condition and Delta_residual > self.delta_tol and self.steps_count < self.maxiter:
             self._print_information(residual, determinant, X)
             if self.save_intermediate:
@@ -103,6 +103,7 @@ class DirectionAlgorithm(object):
             Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
             delta_cum += Delta_X
             Delta_residual = linalg.norm(Delta_X)
+            alpha = 1.
             X = X + alpha * Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
             P, R, F, A_F, residual, determinant = self.riccati.characteristics(X, fixed_direction)

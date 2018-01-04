@@ -5,6 +5,9 @@
     <orderEntry type="jdk" jdkName="Python 3.6.3 (/store/doeblin/datastore/bankmann/anaconda3/envs/analyticcenter/bin/wrappers/conda/python3.6)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PyDocumentationSettings">
+    <option name="myDocStringFormat" value="NumPy" />
+  </component>
   <component name="TestRunnerService">
     <option name="projectConfiguration" value="py.test" />
     <option name="PROJECT_TEST_RUNNER" value="py.test" />
