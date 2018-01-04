@@ -22,21 +22,33 @@ from .newton import NewtonDirectionOneDimensionCT, NewtonDirectionOneDimensionDT
 class SteepestAscentDirection(DirectionAlgorithm):
     """Class for the computation of the next iterate with the method of steepest ascent."""
     name = "Steepest Ascent"
-    maxiter = 1000000
+    maxiter = 10000000
+
+    def _get_stepsize(self, X, Delta):
+        c1 = 10**4
+        while True:
+            P, R, F, A_F, residual, determinant = self.riccati.characteristics(X, None)
+            Xn = X + self.stepsize * Delta
+            Pn, Rn, Fn, A_Fn, residualn, determinantn = self.riccati.characteristics(Xn, None)
+            if determinantn <=0:
+                self.stepsize/= 2
+                continue
+            if np.log(determinantn) - np.log(determinant) >= self.stepsize / c1 * residual ** 2:
+                self.stepsize *= 2
+                return self.stepsize / 2
+            else:
+                self.stepsize /= 2
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.stepsize = 1.
 
     def _get_direction(self, X, P, R, A_F, fixed_direction=None):
         Delta = self._get_Delta(X, P, R, A_F)
-        self.newton_direction._init_algorithm()
-        (ac, success) = self.newton_direction._directional_iterative_algorithm(direction_algorithm=self.newton_direction._get_direction, X0=X, fixed_direction=Delta)
-        self.logger.info("stepsize chosen by line_search: {}".format(-ac.delta_cum[0, 0]/Delta[0,0]))
-        if np.isclose(linalg.norm(ac.delta_cum), 0):
-            return Delta
-        else:
-            return ac.delta_cum
+        stepsize = self._get_stepsize(X, Delta)
+        self.logger.info("stepsize: {}".format(stepsize))
+        return Delta * stepsize
 
 
 class SteepestAscentDirectionCT(SteepestAscentDirection):
@@ -51,7 +63,7 @@ class SteepestAscentDirectionCT(SteepestAscentDirection):
     def _get_Delta(self, X, P, R, A):
         Delta = np.asmatrix(linalg.solve(P, A.H))
         Delta = Delta + Delta.H
-        return Delta/linalg.norm(Delta)
+        return Delta / linalg.norm(Delta)
 
 
 class SteepestAscentDirectionDT(SteepestAscentDirection):
