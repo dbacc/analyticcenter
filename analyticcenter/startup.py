@@ -76,7 +76,7 @@ def get_algorithm_object(system, method, abs_tol=np.finfo(float).eps, delta_tol=
         algorithm = _steepestascentmethod(discrete_time)
     else:
         logger.critical("No valid algorithm method given.")
-
+        raise ValueError("No valid algorithm method given.")
     riccati = _riccatiobject(discrete_time, system)
     algorithm_object = algorithm(riccati, initializer, abs_tol, delta_tol, maxiter, save_intermediate)
     return algorithm_object

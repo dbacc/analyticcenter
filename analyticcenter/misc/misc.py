@@ -42,7 +42,7 @@ def check_positivity(M, M_name=""):
     except linalg.LinAlgError as err:
         lmin = np.min(linalg.eigh(M)[0])
         if lmin >= 0 or np.isclose(lmin, 0):
-            logger.warning(
+            logger.debug(
                 'Matrix {} seems to be non-negative, but Cholesky factorization failed due to roundoff errors'.format(
                     M_name))
             return True

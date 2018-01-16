@@ -29,8 +29,9 @@ def log_plot_eigenvalues(alg_object, n=100):
     plt.show()
 
 
-def log_log_direction(X, det):
-    k_last = 6
+def log_log_direction(X, det, k_last=6):
+    X = np.array(X)
+    det = np.array(det)
     X_final = X[-1]
     det_final = det[-1]
     X_diff = np.linalg.norm(X - X_final, axis=(1,2))[:-1]

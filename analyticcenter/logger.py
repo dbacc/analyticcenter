@@ -30,6 +30,12 @@ def load_config():
 
 def prepare_logger(logging_config):
     logging.config.dictConfig(logging_config)
+    root_logger = logging.getLogger()
+    if __debug__:
+        logger = logging.getLogger("debug")
+    else:
+        logger = logging.getLogger("user")
+    root_logger.addHandler(logger.handlers[0])
     np.set_printoptions(linewidth=200)
 
 

@@ -1,7 +1,7 @@
 # Analytic Center
 
 This python package is intended to be used for the computation of the analytic center of a strictly passive and stable discrete-time or continuous-time linear time-invariant system.
-One can choose between several solvers (Newton, steepest ascent).
+One can choose between several solvers (Newton, steepest ascent). Note that this package is a proof-of-concept implementation. There is no guaranty for robustness or optimization of the code.
 
 ## Installation
 The package can be installed by running
@@ -14,9 +14,13 @@ The package requirements are listed in `requirements.txt` and can be installed w
 
 Note that you need at least python version 3.5 to use this software.
 
+Also note that for some functionality you will need a modified version of the slycot package, an interface for an OpenSource Release of SLICOT.
+This package can be obtained from ...
+
 
 ## Example usage
 The following simple example can be found in `examples/example3.py`.
+Run the example with `python3 -O examples/example3.py`. Ommiting the `-O` switch will turn on some debugging information.
 * First one has to create a system object `sys`:
 
 ```python
@@ -58,8 +62,13 @@ Uses pythons `logging` module. Configuration can be found in `config/config.yaml
 See the provided license file.
 
 ## Author
-Daniel Bankmann
+    Daniel Bankmann
+    Technische Universität Berlin
+    bankmann@math.tu-berlin.de
 
-Technische Universität Berlin
+## References
+    Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., Analytic Center for the Passivity LMI, 2018
 
-bankmann@math.tu-berlin.de
+
+    Beatti, C. ; Mehrmann, V.; van Dooren, P., Analytic Center for the Passivity LMI, 2018
+
