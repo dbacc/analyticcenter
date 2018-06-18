@@ -258,7 +258,7 @@ class RiccatiOperator(object):
         """
         gram = control.gram(control.ss(self.system.A, self.system.B, self.system.C, self.system.D), 'c')
 
-        if (min(linalg.eigh(gram)[0]) <= 1.e-6):
+        if (min(linalg.eigh(gram)[0]) <= 1.e-20):
             self.logger.critical("System is not controllable. Aborting.")
             raise AnalyticCenterUncontrollable("System is not controllable.")
         else:

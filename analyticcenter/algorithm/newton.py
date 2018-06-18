@@ -11,7 +11,6 @@
 ##
 import logging
 
-import ipdb
 import numpy as np
 from scipy import linalg
 
@@ -58,8 +57,8 @@ class NewtonDirection(DirectionAlgorithm):
                 self.lambd = lambd
             if lambd > 0.25:
                 self.logger.info("In linearly converging phase")
-                # return 1 / (1 + lambd) Scaling really makes things bad atm!
-                return 1.
+                return 1 / (1 + lambd)
+                # return 1.
             else:
                 self.logger.info("In quadratically converging phase")
                 return 1.

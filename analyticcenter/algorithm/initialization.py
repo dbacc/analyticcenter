@@ -17,7 +17,6 @@ from scipy import linalg
 
 from .direction import DirectionAlgorithm
 from .newton import NewtonDirectionOneDimensionCT, NewtonDirectionOneDimensionDT
-import ipdb
 
 
 class InitialX(DirectionAlgorithm):

@@ -11,7 +11,6 @@
 ##
 import logging
 
-import ipdb
 import numpy as np
 from scipy import linalg
 
