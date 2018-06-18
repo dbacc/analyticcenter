@@ -28,6 +28,9 @@ class SteepestAscentDirection(DirectionAlgorithm):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
+
+
+
     def _get_direction(self, X, P, R, A_F, fixed_direction=None):
         Delta = self._get_Delta(X, P, R, A_F)
         self.newton_direction._init_algorithm()

@@ -16,6 +16,7 @@ from analyticcenter import AnalyticCenterUnstable, AnalyticCenterNotPassive, \
     AnalyticCenterRiccatiSolutionFailed, AnalyticCenterUncontrollable
 
 from analyticcenter.examples.rlc import sys as sysrlc
+from analyticcenter.examples.example2 import sys as sysex2
 from test.test_examples.example1 import sys
 from test.test_examples.example4 import sys as sysuncontrollable
 from analyticcenter.examples.cheby_filter import sys as syscheby
@@ -36,12 +37,12 @@ def test_unstable_dt():
 
 def test_uncontrollable_ct():
     with pytest.raises(AnalyticCenterUncontrollable):
-        alg = get_algorithm_object(sysuncontrollable, 'newton', discrete_time=False)
+        alg = get_algorithm_object(sysrlc, 'newton', discrete_time=False)
         (X, success) = alg()
 
 
 def test_2():
-    alg = get_algorithm_object(sysrlc, 'newton', discrete_time=False, abs_tol=9e-1)
+    alg = get_algorithm_object(sysex2, 'newton', discrete_time=False, abs_tol=9e-1)
     (X, success) = alg()
     assert success
 

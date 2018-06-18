@@ -27,6 +27,7 @@ class DirectionAlgorithm(object):
 
     def __init__(self, riccati, initializer, abs_tol=np.finfo(float).eps, delta_tol=0., maxiter=100,
                  save_intermediate=False):
+        self.done = False
         self.riccati = riccati
         self.system = riccati.system
         self.abs_tol = abs_tol
@@ -44,7 +45,7 @@ class DirectionAlgorithm(object):
         logger.addFilter(self._context_log_filter)
 
     def _context_log_filter(self, record):
-        if self.steps_count < 100 or self.steps_count % 100 == 0:
+        if self.steps_count < 100 or self.steps_count % 100 == 0 or self.done:
             return "One" not in record.name
         else:
             return False
@@ -54,6 +55,13 @@ class DirectionAlgorithm(object):
             self.intermediate_X = []
             self.intermediate_det = []
         self.steps_count = 0
+        self.done = False
+
+    def _stopping_criterion(self):
+        if self.residual < self.abs_tol:
+            return True
+        else:
+            return False
 
     def _print_information(self, residual, determinant, X):
         if (self.debug or self.logger.level == 0 or self.name == "NewtonMDCT" or self.name == "Steepest Ascent") and (
@@ -92,33 +100,30 @@ class DirectionAlgorithm(object):
             X, success_init = (X0, True)
         self.logger.debug("Initial X:\n{}".format(X))
         delta_cum = 0 * X
-        P, R, F, A_F, residual, determinant = self.riccati.characteristics(X)
-        Delta_residual = float("inf")
+        P, R, F, A_F, self.residual, determinant = self.riccati.characteristics(X)
 
-        while residual > 10. * self.abs_tol * self.condition and Delta_residual > self.delta_tol and self.steps_count < self.maxiter:
-            self._print_information(residual, determinant, X)
+        while not self._stopping_criterion() and self.steps_count < self.maxiter:
+            self._print_information(self.residual, determinant, X)
             if self.save_intermediate:
                 self._save_intermediate(X, determinant)
 
             Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
             delta_cum += Delta_X
-            Delta_residual = linalg.norm(Delta_X)
             alpha = 1.
             X = X + alpha * Delta_X
             self.logger.debug("Updating current X by Delta:_X:\n{}".format(Delta_X))
-            P, R, F, A_F, residual, determinant = self.riccati.characteristics(X, fixed_direction)
+            P, R, F, A_F, self.residual, determinant = self.riccati.characteristics(X, fixed_direction)
             self.steps_count += 1
-        self._print_information(residual, determinant, X)
+        self.done = True
+        self._print_information(self.residual, determinant, X)
         if self.save_intermediate:
             self._save_intermediate(X, determinant)
 
         HX = self.riccati._get_H_matrix(X)
         analyticcenter = AnalyticCenter(X, A_F, HX, algorithm=self.riccati, discrete_time=self.discrete_time,
                                         delta_cum=delta_cum)
-        if residual <= 10. * self.abs_tol * self.condition or Delta_residual <= self.delta_tol:
-            if Delta_residual <= self.delta_tol:
-                self.logger.warning(
-                    "Residual of Delta: {} is below tolerance {}".format(Delta_residual, self.delta_tol))
+
+        if self._stopping_criterion():
             return (analyticcenter, True)
         else:
             self.logger.error("Computation failed. Maximal number of steps reached.")
@@ -130,7 +135,7 @@ class DirectionAlgorithm(object):
 
     def __call__(self, X0=None):
         """
-        Wrapper function for directional algorithm that does all the logging.
+        Caller function for directional algorithm that does all the logging.
 
         Parameters
         ----------

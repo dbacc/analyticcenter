@@ -170,7 +170,6 @@ class RiccatiOperator(object):
         """
         raise NotImplementedError
 
-
     def riccati_operator(self, X, F=None):
         """
         Computes the residual of the Riccati operator P = Ricc(X). If F is already known, computation effort can be
@@ -257,9 +256,9 @@ class RiccatiOperator(object):
         -------
         Boolean
         """
-        poles = np.random.rand(self.system.n)
-        F, nup, warn = place(self.system.A, self.system.B, poles)
-        if nup > 0 or warn != 0:
+        gram = control.gram(control.ss(self.system.A, self.system.B, self.system.C, self.system.D), 'c')
+
+        if (min(linalg.eigh(gram)[0]) <= 1.e-6):
             self.logger.critical("System is not controllable. Aborting.")
             raise AnalyticCenterUncontrollable("System is not controllable.")
         else:
@@ -403,8 +402,6 @@ class RiccatiOperatorContinuousTime(RiccatiOperator):
         self._R = self.system.R
         return self._R
 
-
-
     def _get_Hamiltonian(self):
         """Computes the associated Hamiltonian matrix and prints the eigenvalues. Used for debugging purposes only.
         """
@@ -467,7 +464,6 @@ class RiccatiOperatorDiscreteTime(RiccatiOperator):
     def _get_R(self, X):
         self._R = self.system.R - self.system.B.H @ X @ self.system.B
         return self._R
-
 
     def _eig_stable(self, eigs):
         return np.max(np.abs(eigs)) < 1

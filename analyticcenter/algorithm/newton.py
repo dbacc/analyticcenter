@@ -27,6 +27,7 @@ class NewtonDirection(DirectionAlgorithm):
     multi_dimensional = True
 
     def __init__(self, *args, **kwargs):
+        self.lambd = None
         super().__init__(*args, **kwargs)
 
     def _get_stepzise(self, Delta, A):
@@ -47,20 +48,23 @@ class NewtonDirection(DirectionAlgorithm):
         """
 
         if self.multi_dimensional:
-            disc = np.real(np.trace((A + A.H).H @ Delta))
+
+            disc = -np.real(np.trace((A + A.H).H @ Delta))
             if disc < 0:
-                lambd = 0
+                self.logger.error("Hessian not pos def!")
+                raise ValueError("Hessian not pos def!")
             else:
                 lambd = np.sqrt(disc)
+                self.lambd = lambd
             if lambd > 0.25:
                 self.logger.info("In linearly converging phase")
-                return 1 + lambd
+                # return 1 / (1 + lambd) Scaling really makes things bad atm!
+                return 1.
             else:
+                self.logger.info("In quadratically converging phase")
                 return 1.
         else:
             return 1.
-
-
 
     def _get_direction(self, X0, P0, R0, A_F, fixed_direction=None):
         """
@@ -160,8 +164,6 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
     discrete_time = False
     multi_dimensional = False
 
-
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -200,17 +202,33 @@ class NewtonDirectionOneDimensionDT(NewtonDirection):
             np.trace(second_order)))) * search_dir
 
 
-class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
+class NewtonDirectionMultipleDimensions(NewtonDirection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _stopping_criterion(self):
+
+        if self.lambd is not None and self.lambd ** 2 < self.abs_tol:
+            return True
+        else:
+            return False
+
+
+class NewtonDirectionMultipleDimensionsCT(NewtonDirectionMultipleDimensions):
     """Subclass for computing the Newton step in the multi-dimensional continuous-time case"""
+
+
     name = "NewtonMDCT"
     line_search_method = NewtonDirectionOneDimensionCT
     line_search = False
     discrete_time = False
 
+
     def __init__(self, *args, **kwargs):
         self.newton_direction = self.line_search_method(*args, **kwargs)
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
+
 
     def _newton_step_solver(self, A, S, P0_root):
         # TODO: use Schur Form
@@ -231,11 +249,12 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirection):
         self.condition = np.linalg.cond(lhs)
         # check if indeed solution:
 
-        if self.debug:
+        if __debug__:
             self.logger.debug("Condition Number of the Hessian: {}".format(np.linalg.cond(lhs)))
             self._check(A, S, Delta)
 
         return Delta
+
 
     def _check(self, A, S, Delta):
         """Convenience function for debugging, whether Newton equation is solved accurately."""
@@ -281,7 +300,7 @@ class NewtonDirectionIterativeCT(NewtonDirectionMultipleDimensionsCT):
         return Delta
 
 
-class NewtonDirectionMultipleDimensionsDT(NewtonDirection):
+class NewtonDirectionMultipleDimensionsDT(NewtonDirectionMultipleDimensions):
     """Subclass for computing the Newton step in the multi-dimensional discrete-time case"""
     discrete_time = True
     line_search_method = NewtonDirectionOneDimensionDT

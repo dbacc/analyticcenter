@@ -64,28 +64,27 @@ class InitialX(DirectionAlgorithm):
         if self.debug:
             self.riccati._get_Hamiltonian()
         X0 = X_minus @ linalg.sqrtm(linalg.solve(X_minus, X_plus))
-        fixed_direction = 0.5 * (X_minus + X_plus)
+        fixed_direction = X0
 
         self.logger.debug("Eigenvalues of X_init_guess: {}".format(linalg.eigh(fixed_direction)[0]))
         self.logger.debug(
             "Eigenvalues of H(X_init_guess): {}".format(
                 linalg.eigh(self.riccati._get_H_matrix(fixed_direction))[0]))
 
-        self.logger.info("Improving Initial X with Newton approach")
+        # self.logger.info("Improving Initial X with Newton approach")
+        # import pytest; pytest.set_trace()
+        # analyticcenter_init, success = self.newton_direction._directional_iterative_algorithm(
+        #     direction_algorithm=self.newton_direction._get_direction, fixed_direction=X0, X0=X0)
 
-        analyticcenter_init, success = self.newton_direction._directional_iterative_algorithm(
-            direction_algorithm=self.newton_direction._get_direction, fixed_direction=X0, X0=X0)
+        # Xinit = analyticcenter_init.X
+        # if not success:
+        #     self.logger.critical("Computation of initial X failed.")
+        # else:
+        #     self.logger.debug("Eigenvalues of X_init: {}".format(linalg.eigh(Xinit)[0]))
+        #     self.logger.debug(
+        #         "Eigenvalues of H(X_init): {}".format(linalg.eigh(self.riccati._get_H_matrix(Xinit))[0]))
 
-        Xinit = analyticcenter_init.X
-        if not success:
-            self.logger.critical("Computation of initial X failed.")
-        else:
-            self.logger.debug("Eigenvalues of X_init: {}".format(linalg.eigh(Xinit)[0]))
-            self.logger.debug(
-                "Eigenvalues of H(X_init): {}".format(linalg.eigh(self.riccati._get_H_matrix(Xinit))[0]))
-
-
-        return Xinit, True
+        return X0, True
 
 
 class InitialXCT(InitialX):
