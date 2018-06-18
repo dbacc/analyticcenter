@@ -63,7 +63,7 @@ class AnalyticCenter(object):
         R =-( A_T + A_T.H)
         eigminR = np.min(linalg.eigh(R)[0])
         self.logger.info("Minimal eigenvalues of R of the pH realization: {}".format(eigminR))
-        dist, omega = ab13fd(self.system.n, A_T, tol=1.e-5)[1:]
+        dist = ab13fd(self.system.n, A_T, tol=1.e-5)[1:]
         self.logger.info("Distance to stability is: {}".format(dist))
 
 
