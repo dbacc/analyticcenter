@@ -64,7 +64,7 @@ class DirectionAlgorithm(object):
 
     def _print_information(self, residual, determinant, X):
         if (self.debug or self.logger.level == 0 or self.name == "NewtonMDCT" or self.name == "Steepest Ascent") and (
-                self.steps_count < 100 or self.steps_count % 100 == 0):
+                self.steps_count < 500 or self.steps_count % 100 == 0):
             self.logger.info("Current step: {}\tResidual: {}\tDet: {}".format(self.steps_count, residual, determinant))
             self.logger.debug("Current objective value (det(H(X))): {}".format(determinant))
             self.logger.debug("Current X:\n{}".format(X))
