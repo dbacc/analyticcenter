@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import logging
@@ -30,7 +30,7 @@ class NewtonDirection(DirectionAlgorithm):
         self.lambd = None
         super().__init__(*args, **kwargs)
 
-    def _get_stepzise(self, Delta, A):
+    def _get_stepzise(self, Delta, A, P):
         """
         Determines the stepsize that should be used in the Newton step. If lamb > 0.25 a damped Newton method should be
         used.
@@ -49,7 +49,10 @@ class NewtonDirection(DirectionAlgorithm):
 
         if self.multi_dimensional:
 
-            disc = -np.real(np.trace((A + A.H).H @ Delta))
+            APinv = rsolve(P, A)
+
+
+            disc = -np.real(np.trace((APinv + APinv.H) @ Delta))
             if disc < 0:
                 self.logger.error("Hessian not pos def!")
                 raise ValueError("Hessian not pos def!")
@@ -73,13 +76,12 @@ class NewtonDirection(DirectionAlgorithm):
         Parameters
         ----------
         X0 : Current X0
-            
+
         P0 : Current P0
-            
         R0 : Current R0
-            
+
         A_F : Current A_F
-            
+
         fixed_direction : If not None, computation is only done along a 1d subspace spanned by fixed_direction
              (Default value = None)
 
@@ -92,7 +94,6 @@ class NewtonDirection(DirectionAlgorithm):
         A_F_hat, P0_root, S2 = self._transform_system2current_X0(A_F, P0, R0)
 
         Delta_X_hat = self._newton_step_solver(A_F_hat, S2, P0_root)
-        # ipdb.set_trace()
         Delta_X = P0_root @ Delta_X_hat @ P0_root
 
         if self.line_search:
@@ -100,8 +101,8 @@ class NewtonDirection(DirectionAlgorithm):
             analyticcenter_new, success = self.newton_direction._directional_iterative_algorithm(
                 direction_algorithm=self.newton_direction._get_direction, fixed_direction=Delta_X, X0=X0)
             Delta_X += analyticcenter_new.delta_cum
-
-        alpha = self._get_stepzise(Delta_X, A_F_hat)
+        P0_hat = np.identity(self.system.n)
+        alpha = self._get_stepzise(Delta_X_hat, A_F_hat, P0_hat)
 
         return alpha * Delta_X
 
@@ -112,11 +113,11 @@ class NewtonDirection(DirectionAlgorithm):
         Parameters
         ----------
         A_F : Current A_F
-            
+
         P0 : Current P0
-            
+
         R0 : Current R0
-            
+
 
         Returns
         -------
@@ -239,6 +240,7 @@ class NewtonDirectionMultipleDimensionsCT(NewtonDirectionMultipleDimensions):
         lhs = np.kron(A.T, A) + np.kron(np.conj(A), A.H) + np.kron(identity, AAH) + np.kron(AAH.T,
                                                                                             identity) + np.kron(
             identity, S) + np.kron(S, identity)
+
 
         self.logger.debug("Current lhs and rhs\n{}\n{}".format(lhs, rhs))
         Delta = np.asmatrix(linalg.solve(lhs, rhs, assume_a='pos'))

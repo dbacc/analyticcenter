@@ -38,7 +38,7 @@ handlers:
 
 
 root:
-    level: INFO
+    level: DEBUG
     handlers: []
 loggers:
     debug:
