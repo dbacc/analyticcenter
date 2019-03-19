@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import numpy as np
@@ -63,7 +63,8 @@ class AnalyticCenter(object):
         R =-( A_T + A_T.H)
         eigminR = np.min(linalg.eigh(R)[0])
         self.logger.info("Minimal eigenvalues of R of the pH realization: {}".format(eigminR))
-        dist = ab13fd(self.system.n, A_T, tol=1.e-5)[1:]
+        dist = ab13fd(self.system.n, A_T, tol=1.e-5)[0:]
+        import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
         self.logger.info("Distance to stability is: {}".format(dist))
 
 
