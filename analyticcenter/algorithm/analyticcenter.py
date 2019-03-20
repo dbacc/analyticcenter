@@ -64,7 +64,6 @@ class AnalyticCenter(object):
         eigminR = np.min(linalg.eigh(R)[0])
         self.logger.info("Minimal eigenvalues of R of the pH realization: {}".format(eigminR))
         dist = ab13fd(self.system.n, A_T, tol=1.e-5)[0:]
-        import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
         self.logger.info("Distance to stability is: {}".format(dist))
 
 

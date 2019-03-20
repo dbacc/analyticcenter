@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import numpy as np
@@ -53,3 +53,20 @@ class WeightedSystem(LTI):
     def __initH0(self):
         self.H0 = np.bmat([[self.Q, self.S], [self.S.transpose(), self.R]])
 
+    def bilinear_discretization(self):
+        identity = np.identity(self.n)
+        identitym = np.identity(self.m)
+        idamin = np.linalg.inv(self.A - identity ) #TODO: Make more robust
+        Ad = np.linalg.solve(self.A - identity, self.A + identity)
+        Bd = np.linalg.solve(self.A - identity, self.B) * np.sqrt(2)
+        Tc = np.block([[ -np.sqrt(2) * idamin , - Bd /np.sqrt(2)],
+                       [ np.zeros((self.m, self.n)), identitym]])
+        Wc = np.block([[ self.Q, self.S],
+                       [self.S.H, self.R]])
+        Wd = Tc.H @ Wc @ Tc
+        Qd = Wd[:self.n, :self.n]
+        Sd = Wd[:self.n, self.n:]
+        Rd = Wd[self.n:, self.n:]
+        Cd = Sd.H
+        Dd = Rd/2
+        return WeightedSystem(Ad,Bd,Cd,Dd,Qd,Sd,Rd)

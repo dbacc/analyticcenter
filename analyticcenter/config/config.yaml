@@ -38,11 +38,11 @@ handlers:
 
 
 root:
-    level: DEBUG
+    level: INFO
     handlers: []
 loggers:
     debug:
-        level: DEBUG
+        level: INFO
         handlers: [console]
 
     user:

@@ -12,6 +12,7 @@
 import logging
 
 import control
+from ..misc.control import dare as mydare
 import numpy as np
 from scipy import linalg
 
@@ -61,7 +62,7 @@ class InitialX(DirectionAlgorithm):
         H_geom = self.riccati._get_H_matrix(X0_geom)
         mineig_geometric_mean = linalg.eigh(H_geom)[0][0]
         det_geom = linalg.det(H_geom)
-        self.logger.debug("Computed initial guess with geometric mean approach.\n"
+        self.logger.info("Computed initial guess with geometric mean approach.\n"
                          "det(H(X0)) = {}".format(det_geom))
 
         self.logger.debug(
@@ -72,8 +73,10 @@ class InitialX(DirectionAlgorithm):
         H_bisect = self.riccati._get_H_matrix(X0_bisect)
         det_bisect = linalg.det(H_bisect)
         mineig_bisect = linalg.norm(H_bisect, -2)
-        self.logger.debug("Computed initial guess with bisection approach.\n"
+        self.logger.info("Computed initial guess with bisection approach.\n"
                          "det(H(X0)) = {}".format(det_bisect))
+
+        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         if det_bisect > det_geom or force_bisection and mineig_bisect > 0:
             self.logger.info("Taking solution computed with bisection approach")
             X0 = X0_bisect
@@ -99,9 +102,15 @@ class InitialX(DirectionAlgorithm):
         Sm = self.system.S
         Qm = -self.system.Q
         Rm = -self.system.R
-        X_minus = -np.asmatrix(self.riccati_solver(Am, Bm, Qm, Rm, Sm,
-                                                   np.identity(self.system.n)))
+        X_minus = -np.asmatrix(self.riccati_solver(self.system.A,
+                                                  self.system.B,
+                                                  self.system.Q,
+                                                  self.system.R,
+                                                  self.system.S,
+                                                  np.identity(self.system.n),
+                                                  False))
 
+        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         if np.isclose(linalg.norm(X_plus - X_minus), 0):
             self.logger.critical(
                 "X_+ and X_- are (almost) identical: No interior!")
@@ -115,8 +124,6 @@ class InitialX(DirectionAlgorithm):
                 linalg.eigh(X_minus)[0]))
         self.logger.debug("Eigenvalues of H(X_minus): {}".format(
             linalg.eigh(self.riccati._get_H_matrix(X_minus))[0]))
-        if self.debug:
-            self.riccati._get_Hamiltonian()
         X0_geom = X_minus @ linalg.sqrtm(linalg.solve(X_minus, X_plus))
         return X0_geom
 
@@ -174,7 +181,7 @@ class InitialXCT(InitialX):
 
 class InitialXDT(InitialX):
     line_search_method = NewtonDirectionOneDimensionDT
-    riccati_solver = staticmethod(lambda *args: control.dare(*args)[0])
+    riccati_solver = staticmethod(lambda *args: mydare(*args)[0])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

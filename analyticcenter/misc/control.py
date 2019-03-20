@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 """ mateqn.py
@@ -322,7 +322,7 @@ def care(A, B, Q, R=None, S=None, E=None):
         raise ControlArgument("Invalid set of input parameters.")
 
 
-def dare(A, B, Q, R, S=None, E=None):
+def dare(A, B, Q, R, S=None, E=None, stabilizing=True):
     """ (X,L,G) = dare(A,B,Q,R) solves the discrete-time algebraic Riccati
     equation
 
@@ -343,8 +343,8 @@ def dare(A, B, Q, R, S=None, E=None):
     matrix :math:`G = (B^T X B + R)^{-1} (B^T X A + S^T)` and the closed loop
     eigenvalues L, i.e., the eigenvalues of A - B G , E.
     """
-    if S is not None or E is not None:
-        return dare_old(A, B, Q, R, S, E)
+    if S is not None or E is not None or not stabilizing:
+        return dare_old(A, B, Q, R, S, E, stabilizing)
     else:
         Rmat = asmatrix(R)
         Qmat = asmatrix(Q)
@@ -354,7 +354,7 @@ def dare(A, B, Q, R, S=None, E=None):
         return X, L, G
 
 
-def dare_old(A, B, Q, R, S=None, E=None):
+def dare_old(A, B, Q, R, S=None, E=None, stabilizing=True):
     # Make sure we can import required slycot routine
     try:
         from slycot import sb02md
@@ -447,7 +447,12 @@ def dare_old(A, B, Q, R, S=None, E=None):
             raise e
 
         try:
-            X, rcond, w, S, U, A_inv = sb02md(n, A, G, Q, 'D')
+            if stabilizing:
+                sort = 'S'
+            else:
+                sort = 'U'
+
+            X, rcond, w, S, U, A_inv = sb02md(n, A, G, Q, 'D', sort=sort)
         except ValueError as ve:
             if ve.info < 0 or ve.info > 5:
                 e = ValueError(ve.message)
@@ -536,8 +541,12 @@ def dare_old(A, B, Q, R, S=None, E=None):
         # Solve the generalized algebraic Riccati equation by calling the
         # Slycot function sg02ad
         try:
+            if stabilizing:
+                sort = 'S'
+            else:
+                sort = 'U'
             rcondu, X, alfar, alfai, beta, S_o, T, U, iwarn = \
-                sg02ad('D', 'B', 'N', 'U', 'N', 'N', 'S', 'R', n, m, 0, A, E, B, Q, R, S)
+                sg02ad('D', 'B', 'N', 'U', 'N', 'N', sort, 'R', n, m, 0, A, E, B, Q, R, S)
         except ValueError as ve:
             if ve.info < 0 or ve.info > 7:
                 e = ValueError(ve.message)

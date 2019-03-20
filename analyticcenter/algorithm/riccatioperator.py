@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import logging
@@ -35,8 +35,6 @@ class RiccatiOperator(object):
         self.H = None
         self.__init_H0()
         self.check_stability()
-        self.check_controllability()
-        self.check_passivity()
 
     def __init_H0(self):
         """Initializes the inhomogeinity of the inequality"""
@@ -48,12 +46,12 @@ class RiccatiOperator(object):
         Parameters
         ----------
         Delta_X : Change in X. Assumed to be Hermitian.
-            
+
 
         Returns
         -------
         Change in H(X).
-        
+
         """
         return self._get_H_matrix(Delta_X) - self.H0
 
@@ -65,7 +63,7 @@ class RiccatiOperator(object):
         Parameters
         ----------
         X : Current solution
-            
+
 
         Returns
         -------
@@ -91,17 +89,17 @@ class RiccatiOperator(object):
 
     def sample_direction(self, X, determinant_start, residual_start):
         """
-        Generates gradients in every basis direction and computes the maximal ascent among those also considering the 
+        Generates gradients in every basis direction and computes the maximal ascent among those also considering the
         length of the step in that direction. Can be used for debugging purposes
-        
+
         Parameters
         ----------
         X : Current solution
-            
+
         determinant_start : current value of the determinant
-            
+
         residual_start : current value of the residual
-            
+
 
         Returns
         -------
@@ -162,7 +160,7 @@ class RiccatiOperator(object):
 
 
         Returns
-        -------          
+        -------
         F : Current Feedback matrix
 
         P : Current residual matrix P = Ricc(X)
@@ -174,7 +172,7 @@ class RiccatiOperator(object):
         """
         Computes the residual of the Riccati operator P = Ricc(X). If F is already known, computation effort can be
         saved.
-        
+
         Parameters
         ----------
         X : Current solution
@@ -234,7 +232,7 @@ class RiccatiOperator(object):
 
     def check_stability(self):
         """Checks whether the system is stable.
-        
+
          Returns
         -------
         Boolean
@@ -256,7 +254,7 @@ class RiccatiOperator(object):
         -------
         Boolean
         """
-        gram = control.gram(control.ss(self.system.A, self.system.B, self.system.C, self.system.D), 'c')
+        gram = self._get_gram()
 
         if (min(linalg.eigh(gram)[0]) <= 1.e-6):
             self.logger.critical("System is not controllable. Aborting.")
@@ -298,14 +296,14 @@ class RiccatiOperator(object):
         Parameters
         ----------
         X : Current solution
-            
+
         P : Current residual matrix P = Ricc(X)
-            
+
         F : Current Feedback matrix
-            
-        A_F : = A - B @ F 
-            
-        Delta : Direction of change, if not None 
+
+        A_F : = A - B @ F
+
+        Delta : Direction of change, if not None
              (Default value = None)
 
         Returns
@@ -329,18 +327,18 @@ class RiccatiOperator(object):
 
         Delta : Direction of change, if not None
              (Default value = None)
-            
+
 
         Returns
-        -------     
+        -------
         P : Current residual matrix P = Ricc(X)
-            
+
         F : Current Feedback matrix
-            
-        A_F : = A - B @ F 
-        
+
+        A_F : = A - B @ F
+
         residual: The current residual of the gradient equation
-        
+
         determinant: The current determinant of H(X)
 
         """
@@ -363,6 +361,8 @@ class RiccatiOperatorContinuousTime(RiccatiOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._determinant_R = None
+        self.check_controllability()
+        self.check_passivity()
 
     def _get_H_matrix(self, X):
 
@@ -420,6 +420,9 @@ class RiccatiOperatorContinuousTime(RiccatiOperator):
         return np.max(np.real(eigs)) < 0
 
 
+    def _get_gram(self):
+        return control.gram(control.ss(self.system.A, self.system.B, self.system.C, self.system.D), 'c')
+
 class RiccatiOperatorDiscreteTime(RiccatiOperator):
     """Child class that defines all the methods of RiccatiOperator class tailored to the discrete time"""
     # TODO: Improve performance by saving intermediate results where appropriate
@@ -428,6 +431,7 @@ class RiccatiOperatorDiscreteTime(RiccatiOperator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._determinant_R = None
 
     def _get_H_matrix(self, X: np.matrix):
         A = self.system.A
@@ -467,3 +471,7 @@ class RiccatiOperatorDiscreteTime(RiccatiOperator):
 
     def _eig_stable(self, eigs):
         return np.max(np.abs(eigs)) < 1
+
+
+    def _get_gram(self):
+        return control.gram(control.ss(self.system.A, self.system.B, self.system.C, self.system.D), 'd')
