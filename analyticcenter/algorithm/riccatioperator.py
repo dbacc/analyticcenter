@@ -10,7 +10,7 @@
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import logging
-
+import cvxpy as cvx
 import control
 import numpy as np
 from scipy import linalg
@@ -28,15 +28,20 @@ class RiccatiOperator(object):
     debug = True
     logger = logging.getLogger(__name__)
 
-    def __init__(self, system):
+    def __init__(self, system, use_cvx=False):
         self.system = system
         self.X0 = None
         self.H0 = None
         self.H = None
         self.__init_H0()
-        self.check_stability()
-        self.check_controllability()
-        self.check_passivity()
+        self.use_cvx = use_cvx
+        if use_cvx:
+            self.bmat = cvx.bmat
+        else:
+            self.bmat = np.bmat
+            self.check_stability()
+            self.check_controllability()
+            self.check_passivity()
 
     def __init_H0(self):
         """Initializes the inhomogeinity of the inequality"""
@@ -365,12 +370,11 @@ class RiccatiOperatorContinuousTime(RiccatiOperator):
         self._determinant_R = None
 
     def _get_H_matrix(self, X):
-
         A = self.system.A
         B = self.system.B
-        H = self.H0 - np.bmat([[A.H @ X + X @ A, X @ B],
+        H = self.H0 - self.bmat([[A.H @ X + X @ A, X @ B],
                                [B.H @ X, np.zeros((self.system.m, self.system.m))]])
-        if self.debug:
+        if self.debug and not self.use_cvx:
             check_positivity(H, "H(X)")
         return H
 
@@ -412,7 +416,7 @@ class RiccatiOperatorContinuousTime(RiccatiOperator):
         S = self.system.S
         RinvSH = linalg.solve(R, S.H)
         H1 = A - B @ RinvSH
-        Ham = np.bmat([[H1, - B @ linalg.solve(R, B.H)],
+        Ham = self.bmat([[H1, - B @ linalg.solve(R, B.H)],
                        [-Q + S @ RinvSH, -H1.H]])
         self.logger.debug("Eigenvalues of the Hamiltonian:\n{}".format(linalg.eig(Ham)[0]))
 
@@ -432,7 +436,7 @@ class RiccatiOperatorDiscreteTime(RiccatiOperator):
     def _get_H_matrix(self, X: np.matrix):
         A = self.system.A
         B = self.system.B
-        H = self.H0 - np.bmat([[A.H @ X @ A - X, A.H @ X @ B],
+        H = self.H0 - self.bmat([[A.H @ X @ A - X, A.H @ X @ B],
                                [B.H @ X @ A, B.H @ X @ B]])
         if self.debug:
             check_positivity(H, "H(X)")

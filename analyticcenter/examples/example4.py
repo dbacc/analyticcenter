@@ -15,6 +15,8 @@ import analyticcenter
 from analyticcenter import WeightedSystem, get_algorithm_object
 from analyticcenter import NewtonDirectionMultipleDimensionsCT
 from analyticcenter import SteepestAscentDirectionCT
+from analyticcenter import RiccatiOperatorContinuousTime
+from analyticcenter import MaximizeMinEig
 sysmat = np.load(join(dirname(__file__), 'example-n-30-m-10.npy'))
 sys = WeightedSystem(*sysmat)
 sys.Q = np.zeros((30, 30))
@@ -25,3 +27,9 @@ if __name__=="__main__":
     alg = get_algorithm_object(sys, 'newton', discrete_time=False, save_intermediate=False)
     alg.maxiter = 10000
     (ac, success) = alg()
+    riccati_mme = RiccatiOperatorContinuousTime(sys, use_cvx=True)
+    mme = MaximizeMinEig(riccati_mme)
+    (prob, X, HX) = mme()
+
+
+

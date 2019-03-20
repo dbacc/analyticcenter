@@ -16,6 +16,8 @@ from .algorithm.newton import NewtonDirectionMultipleDimensionsCT, NewtonDirecti
 from .algorithm.steepestascent import SteepestAscentDirectionCT, SteepestAscentDirectionDT
 from .algorithm.exceptions import AnalyticCenterUnstable, AnalyticCenterNotPassive, \
     AnalyticCenterRiccatiSolutionFailed, AnalyticCenterUncontrollable
+from .algorithm.maxmineig import MaximizeMinEig
+from .algorithm.riccatioperator import RiccatiOperator, RiccatiOperatorContinuousTime, RiccatiOperatorDiscreteTime
 from . import misc
 from . import logger  # For convenience only. Should be removed if package is used as library.
 from .startup import get_algorithm_object
