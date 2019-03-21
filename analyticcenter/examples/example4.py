@@ -20,4 +20,11 @@ sys = WeightedSystem(*sysmat)
 if __name__=="__main__":
     alg = get_algorithm_object(sys, 'newton', discrete_time=False, save_intermediate=True)
     alg.maxiter = 1000
-    alg()
+    (ac_newton, success) = alg()
+
+    sys_disc = sys.bilinear_discretization()
+
+    alg_newton_disc = get_algorithm_object(sys_disc, 'newton', discrete_time=True, save_intermediate=True)
+    (ac_newton_disc, success) = alg_newton_disc()
+
+

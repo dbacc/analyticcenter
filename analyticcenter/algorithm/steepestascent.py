@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import logging
@@ -31,7 +31,7 @@ class SteepestAscentDirection(DirectionAlgorithm):
 
 
 
-    def _get_direction(self, X, P, R, A_F, fixed_direction=None):
+    def _get_direction(self, X, P, R, F, A_F, fixed_direction=None):
         Delta = self._get_Delta(X, P, R, A_F)
         self.newton_direction._init_algorithm()
         (ac, success) = self.newton_direction._directional_iterative_algorithm(direction_algorithm=self.newton_direction._get_direction, X0=X, fixed_direction=Delta)

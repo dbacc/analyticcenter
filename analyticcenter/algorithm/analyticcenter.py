@@ -12,6 +12,7 @@
 import numpy as np
 import scipy.linalg as linalg
 import logging
+from .linearsystem import WeightedSystem
 from ..misc.misc import rsolve
 from slycot import ab13fd
 
@@ -73,3 +74,15 @@ class AnalyticCenter(object):
         self.lambda_min_beta()
         self.lambda_min_xi()
         self.stability_estimates()
+
+
+    def centered_realization(self):
+        T = linalg.inv(linalg.sqrtm(self.X))
+        A_T = np.asmatrix(linalg.solve(T, self.system.A) @ T)
+        B_T = T @ self.system.B
+        C_T = rsolve(T, self.system.C)
+        D_T = self.system.D
+        Q_T = np.zeros((self.system.n, self.system.n))
+        S_T = C_T.T
+        R_T = D_T + D_T.T
+        return WeightedSystem(A_T, B_T, C_T, D_T, Q_T, S_T, R_T )

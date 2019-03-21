@@ -11,7 +11,6 @@
 ##
 import logging
 
-import ipdb
 import numpy as np
 from scipy import linalg
 
@@ -30,7 +29,7 @@ class NewtonDirection(DirectionAlgorithm):
         self.lambd = None
         super().__init__(*args, **kwargs)
 
-    def _get_stepzise(self, Delta, A, P):
+    def _get_stepzise(self, X, P, F, A, Delta):
         """
         Determines the stepsize that should be used in the Newton step. If lamb > 0.25 a damped Newton method should be
         used.
@@ -40,6 +39,9 @@ class NewtonDirection(DirectionAlgorithm):
         ----------
         Delta : The solution of the Newton step
         A : The transformed matrix in the Newton step
+        X : Current solution
+        P : Current residual matrix P = Ricc(X)
+        F : Current Feedback matrix
 
         Returns
         -------
@@ -49,10 +51,7 @@ class NewtonDirection(DirectionAlgorithm):
 
         if self.multi_dimensional:
 
-            APinv = rsolve(P, A)
-
-
-            disc = -np.real(np.trace((APinv + APinv.H) @ Delta))
+            disc = self.riccati.get_residual(X, P, F, A, Delta)
             if disc < 0:
                 self.logger.error("Hessian not pos def!")
                 raise ValueError("Hessian not pos def!")
@@ -69,7 +68,7 @@ class NewtonDirection(DirectionAlgorithm):
         else:
             return 1.
 
-    def _get_direction(self, X0, P0, R0, A_F, fixed_direction=None):
+    def _get_direction(self, X0, P0, R0, F0, A_F, fixed_direction=None):
         """
         Computes the next increment Delta_X. If self.line_search is True, a 1d line-search will be performed in addition.
 
@@ -102,7 +101,7 @@ class NewtonDirection(DirectionAlgorithm):
                 direction_algorithm=self.newton_direction._get_direction, fixed_direction=Delta_X, X0=X0)
             Delta_X += analyticcenter_new.delta_cum
         P0_hat = np.identity(self.system.n)
-        alpha = self._get_stepzise(Delta_X_hat, A_F_hat, P0_hat)
+        alpha = self._get_stepzise(X0, P0, F0, A_F, Delta_X)
 
         return alpha * Delta_X
 
@@ -179,7 +178,6 @@ class NewtonDirectionOneDimensionCT(NewtonDirection):
             np.trace(search_dir @ S @ search_dir)) + 1. * linalg.norm(
             search_dir @ A + A.H @ search_dir) ** 2))
         return correction * search_dir
-
 
 class NewtonDirectionOneDimensionDT(NewtonDirection):
     """Subclass for computing the Newton step in the one-dimensional discrete-time case"""
@@ -341,7 +339,8 @@ class NewtonDirectionMultipleDimensionsDT(NewtonDirectionMultipleDimensions):
         self.logger.debug("norm of the residual: {}".format(linalg.norm(res)))
 
         det_factor = linalg.det(np.bmat([[identity - S @ Delta, A], [A.H @ Delta, identity + Delta]]))
-        if det_factor < 1.:
+        if det_factor < 1- 1.e-14:
             self.logger.critical("det factor by newton step is less than 1: {}".format(det_factor))
         else:
             self.logger.debug("det factor by newton step: {}".format(det_factor))
+

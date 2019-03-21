@@ -61,7 +61,7 @@ from control.exception import ControlSlycot, ControlArgument, ControlDimension
 
 #### Riccati equation solvers care and dare
 
-def care(A, B, Q, R=None, S=None, E=None):
+def care(A, B, Q, R=None, S=None, E=None, stabilizing=True):
     """ (X,L,G) = care(A,B,Q,R=None) solves the continuous-time algebraic Riccati
     equation
 
@@ -177,7 +177,11 @@ def care(A, B, Q, R=None, S=None, E=None):
             raise e
 
         try:
-            X, rcond, w, S_o, U, A_inv = sb02md(n, A, G, Q, 'C')
+            if stabilizing:
+                sort = 'S'
+            else:
+                sort = 'U'
+            X, rcond, w, S_o, U, A_inv = sb02md(n, A, G, Q, 'C', sort=sort)
         except ValueError as ve:
             if ve.info < 0 or ve.info > 5:
                 e = ValueError(ve.message)
@@ -263,8 +267,12 @@ def care(A, B, Q, R=None, S=None, E=None):
         # Solve the generalized algebraic Riccati equation by calling the
         # Slycot function sg02ad
         try:
+            if stabilizing:
+                sort = 'S'
+            else:
+                sort = 'U'
             rcondu, X, alfar, alfai, beta, S_o, T, U, iwarn = \
-                sg02ad('C', 'B', 'N', 'U', 'N', 'N', 'U', 'R', n, m, 0, A, E, B, Q, R, S)
+                sg02ad('C', 'B', 'N', 'U', 'N', 'N', sort, 'R', n, m, 0, A, E, B, Q, R, S)
         except ValueError as ve:
             if ve.info < 0 or ve.info > 7:
                 e = ValueError(ve.message)

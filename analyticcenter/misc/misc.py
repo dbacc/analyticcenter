@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import numpy as np
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def rsolve(*args, **kwargs):
     """Computes the left inverse.
-    
+
     rsolve(A,B) = solve(A.H, B.H).H = (inv(A.H) @ B.H).H = B @ inv(A)"""
     return np.asmatrix(linalg.solve(np.asmatrix(args[0]).H, np.asmatrix(args[1]).H, kwargs)).H
 
@@ -66,5 +66,6 @@ def symmetric_product_pos_def(B, P, invertP=False):
     else:
         D = np.diag(np.sqrt(np.diag(T)))
     product = D @ Z.H @ B
+
     product = product.H @ product
     return product

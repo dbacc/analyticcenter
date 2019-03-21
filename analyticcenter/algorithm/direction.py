@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2017
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import logging
@@ -18,7 +18,7 @@ from .analyticcenter import AnalyticCenter
 
 
 class DirectionAlgorithm(object):
-    """ 
+    """
     Base Class for all directional algorithms
     """
     debug = True
@@ -76,13 +76,13 @@ class DirectionAlgorithm(object):
 
     def _directional_iterative_algorithm(self, direction_algorithm, X0=None, fixed_direction=None):
         """
-        
-        Base algorithm for all directional iterative algorithms. 
-        
+
+        Base algorithm for all directional iterative algorithms.
+
         Parameters
         ----------
         direction_algorithm :
-            
+
         X0 : If X0 is set, this value will be considered as initial guess
              (Default value = None)
         fixed_direction : If not None, search will only be performed along a given and fixed direction
@@ -107,7 +107,7 @@ class DirectionAlgorithm(object):
             if self.save_intermediate:
                 self._save_intermediate(X, determinant)
 
-            Delta_X = direction_algorithm(X, P, R, A_F, fixed_direction)
+            Delta_X = direction_algorithm(X, P, R, F, A_F, fixed_direction)
             delta_cum += Delta_X
             alpha = 1.
             X = X + alpha * Delta_X

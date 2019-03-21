@@ -65,8 +65,10 @@ class WeightedSystem(LTI):
                        [self.S.H, self.R]])
         Wd = Tc.H @ Wc @ Tc
         Qd = Wd[:self.n, :self.n]
+        Qd = 0.5*(Qd + Qd.H)
         Sd = Wd[:self.n, self.n:]
         Rd = Wd[self.n:, self.n:]
+        Rd = 0.5*(Rd + Rd.H)
         Cd = Sd.H
         Dd = Rd/2
         return WeightedSystem(Ad,Bd,Cd,Dd,Qd,Sd,Rd)

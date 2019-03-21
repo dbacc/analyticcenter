@@ -13,6 +13,7 @@ import logging
 
 import control
 from ..misc.control import dare as mydare
+from ..misc.control import care as mycare
 import numpy as np
 from scipy import linalg
 
@@ -31,7 +32,7 @@ class InitialX(DirectionAlgorithm):
         """
         Computation of an initial strictly positive solution of the LMI.
         There are several heuristics that lead to interior points and one 'save' approach.
-        Here, we first compute the geometric mean (heuristical approach).
+        Here, we first compute the geometric mean (heuristic approach).
         We first compute two different solutions of the Riccati equation (stabilizing and
         anti-stabilizing).
         Then we hope, that combining them in a clever way (geometric mean) leads us to a point
@@ -76,7 +77,6 @@ class InitialX(DirectionAlgorithm):
         self.logger.info("Computed initial guess with bisection approach.\n"
                          "det(H(X0)) = {}".format(det_bisect))
 
-        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         if det_bisect > det_geom or force_bisection and mineig_bisect > 0:
             self.logger.info("Taking solution computed with bisection approach")
             X0 = X0_bisect
@@ -96,7 +96,8 @@ class InitialX(DirectionAlgorithm):
                                                   self.system.Q,
                                                   self.system.R,
                                                   self.system.S,
-                                                  np.identity(self.system.n)))
+                                                  np.identity(self.system.n),
+                                                  True))
         Am = -self.system.A
         Bm = self.system.B
         Sm = self.system.S
@@ -110,13 +111,15 @@ class InitialX(DirectionAlgorithm):
                                                   np.identity(self.system.n),
                                                   False))
 
-        import pdb; pdb.set_trace()  # XXX BREAKPOINT
+
         if np.isclose(linalg.norm(X_plus - X_minus), 0):
             self.logger.critical(
                 "X_+ and X_- are (almost) identical: No interior!")
         self.logger.debug(
             "Eigenvalues of X_plus: {}".format(
                 linalg.eigh(X_plus)[0]))
+
+
         self.logger.debug("Eigenvalues of H(X_plus): {}".format(
             linalg.eigh(self.riccati._get_H_matrix(X_plus))[0]))
         self.logger.debug(
@@ -163,7 +166,7 @@ class InitialX(DirectionAlgorithm):
 
 class InitialXCT(InitialX):
     line_search_method = NewtonDirectionOneDimensionCT
-    riccati_solver = staticmethod(lambda *args: control.care(*args)[0])
+    riccati_solver = staticmethod(lambda *args: mycare(*args)[0])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
