@@ -1,4 +1,8 @@
-
+.ropeproject
+.pytest_cache
+.ipynb_checkpoints
+tags
+*~Stashed changes
 markdown-navigator*
 *.npy
 build
