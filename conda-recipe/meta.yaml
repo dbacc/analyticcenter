@@ -1,0 +1,35 @@
+package:
+     name: analyticcenter
+     version: {{ GIT_DESCRIBE_TAG }}
+
+source:
+     git_url: ../
+channels:
+        - conda-forge
+        - defaults
+requirements:
+     run:
+         - numpy >=1.13.3
+         - scipy
+         - control
+         - colorlog
+         - matplotlib 
+         - PyYAML
+         - slycot
+         - pytest-runner
+
+about:
+     home: https://gitlab.tubit.tu-berlin.de/PassivityRadius/analyticcenter
+     license:  BSD License
+
+build:
+  number: {{ GIT_DESCRIBE_NUMBER }}
+
+test:
+  requirements:
+          - pytest
+
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml    license: LICENSE
