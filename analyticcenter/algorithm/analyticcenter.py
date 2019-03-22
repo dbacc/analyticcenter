@@ -77,12 +77,12 @@ class AnalyticCenter(object):
 
 
     def centered_realization(self):
-        T = linalg.inv(linalg.sqrtm(self.X))
-        A_T = np.asmatrix(linalg.solve(T, self.system.A) @ T)
+        T = linalg.sqrtm(self.X)
+        A_T = np.asmatrix(rsolve(T, T @ self.system.A) )
         B_T = T @ self.system.B
-        C_T = rsolve(T, self.system.C)
+        C_T = rsolve(T, self.system.C )
         D_T = self.system.D
-        Q_T = np.zeros((self.system.n, self.system.n))
+        Q_T = np.asmatrix(rsolve(T, linalg.solve(T, self.system.Q) ))
         S_T = C_T.T
         R_T = D_T + D_T.T
         return WeightedSystem(A_T, B_T, C_T, D_T, Q_T, S_T, R_T )
