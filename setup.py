@@ -33,7 +33,7 @@ setup(
     tests_require=['pytest'],
     data_files=[(_config_path, [join(_config_path, 'config.yaml')]),
                 (_examples_path, glob.glob(_examples_path + '/*.npy'))],
-    license='GNU',
+    license='BSD 3 License',
     packages=find_packages(exclude=["test", "test.*"]),
     platforms='all'
 )

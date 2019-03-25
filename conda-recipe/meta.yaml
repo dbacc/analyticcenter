@@ -4,23 +4,33 @@ package:
 
 source:
      git_url: ../
+
 channels:
         - conda-forge
         - defaults
+build:
+     noarch: python
+     number: {{GIT_DESCRIBE_NUMBER}}
+     script:
+          - cd $RECIPE_DIR/..
+          - "$PYTHON -m pip install --no-deps . -vv"
 requirements:
+     build: 
+         - pytest
      run:
          - numpy >=1.13.3
          - scipy
-         - control
-         - colorlog
-         - matplotlib 
-         - PyYAML
-         - slycot
+         - control>=0.7.0
+         - colorlog>=2.10.0
+         - matplotlib>=2.0.0
+         - PyYAML>=3.12
+         - slycot>=0.3.3
          - pytest-runner
 
 about:
      home: https://gitlab.tubit.tu-berlin.de/PassivityRadius/analyticcenter
-     license:  BSD License
+     license:  BSD 3 License
+     summary: "Python library for computing the analytic center of the passivity LMI"
 
 build:
   number: {{ GIT_DESCRIBE_NUMBER }}
@@ -30,6 +40,3 @@ test:
           - pytest
 
 
-# See
-# http://docs.continuum.io/conda/build.html for
-# more information about meta.yaml    license: LICENSE
