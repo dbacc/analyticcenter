@@ -1,5 +1,5 @@
-Script started on 2017-09-25 14:31:45+0200
-]0;IPython: PassivityRadius/pythonPython 3.6.2 |Continuum Analytics, Inc.| (default, Jul 20 2017, 13:51:32) 
+Script started on 2019-09-25 14:31:45+0200
+]0;IPython: PassivityRadius/pythonPython 3.6.2 |Continuum Analytics, Inc.| (default, Jul 20 2019, 13:51:32) 
 Type 'copyright', 'credits' or 'license' for more information
 IPython 6.2.0 -- An enhanced Interactive Python. Type '?' for help.
 
@@ -56,4 +56,4 @@ IPython 6.2.0 -- An enhanced Interactive Python. Type '?' for help.
 [?1l[6n[?2004h[?25l[0m[?7l[0m[J[0;38;5;28mIn [[0;38;5;10;1m3[0;38;5;28m]: [8D[8C[?7h[0m[?12l[?25h[?25l[?7l[?7h[0m[?12l[?25h[?25l[?7l[8D[0m[J[0;38;5;102mIn [3]:                                                                                                                                             [148C [0m
 [J[?7h[0m[?12l[?25h[?2004lDo you really want to exit ([y]/n)? 
 
-Script done on 2017-09-25 14:32:14+0200
+Script done on 2019-09-25 14:32:14+0200

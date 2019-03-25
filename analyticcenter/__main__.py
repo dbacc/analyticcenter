@@ -1,5 +1,5 @@
 ##
-## Copyright (c) 2017
+## Copyright (c) 2019
 ## 
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin

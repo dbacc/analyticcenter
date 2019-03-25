@@ -14,8 +14,6 @@ The package requirements are listed in `requirements.txt` and can be installed w
 
 Note that you need at least python version 3.5 to use this software.
 
-Also note that for some functionality you will need a modified version of the slycot package, an interface for an OpenSource Release of SLICOT.
-This package can be obtained from ...
 
 
 ## Example usage
@@ -67,8 +65,7 @@ See the provided license file.
     bankmann@math.tu-berlin.de
 
 ## References
-    Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., Analytic Center for the Passivity LMI, 2018
+	Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., Analytic Center for the Passivity LMI, 2019
 
 
-    Beatti, C. ; Mehrmann, V.; van Dooren, P., Analytic Center for the Passivity LMI, 2018
-
+	C. A. Beattie, V. Mehrmann, and P. Van Dooren, “Robust port-Hamiltonian representations of passive systems,” Automatica, vol. 100, pp. 182–186, Feb. 2019.
