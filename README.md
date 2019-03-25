@@ -8,15 +8,15 @@ The package can be installed by running
 
 `python setup.py install`
 
-The package requirements are listed in `requirements.txt` and can be installed with 
-
-`pip install -r requirements.txt`
 
 Note that you need at least python version 3.5 to use this software.
+
+Alternatively, you can use the `conda` package.
 
 
 
 ## Example usage
+### Simple example
 The following simple example can be found in `examples/example3.py`.
 Run the example with `python3 -O examples/example3.py`. Ommiting the `-O` switch will turn on some debugging information.
 * First one has to create a system object `sys`:
@@ -48,6 +48,11 @@ if __name__ == "__main__":
 ```
 
 * The resulting _analytic center_ object `ac` contains data and methods for analyzing the system at the analytic center.
+
+### Jupyter notebooks
+There are a few jupyter notebooks showing all the results (and more) that are used in the references below.
+
+
 
 ## Tests
 Some tests for the basic functionality have been written. You can run those with 
