@@ -51,7 +51,7 @@ def log_log_direction(X, det, k_last=6):
     plt.yscale('log')
     # plt.xscale('log')
     plt.xlabel('n')
-    plt.plot(det_diff, label=r'$\|det(H(X))-det(H(X_c))\|/ det(H(X_c))$')
+    plt.plot(det_diff, label=r'$\|det(W(X))-det(W(X_c))\|/ det(W(X_c))$')
     # plt.plot(t, np.exp(quadratic_curve_det),label='best quadratic fit')
     plt.legend()
     plt.show()
