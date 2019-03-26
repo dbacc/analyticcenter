@@ -13,7 +13,7 @@ build:
      number: {{GIT_DESCRIBE_NUMBER}}
      script:
           - cd $RECIPE_DIR/..
-          - python setup.py install
+          - $PYTHON setup.py install
           - "$PYTHON -m pip install --no-deps . -vv"
 requirements:
      build: 
