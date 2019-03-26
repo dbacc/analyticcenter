@@ -16,8 +16,6 @@ build:
           - $PYTHON setup.py install
           - "$PYTHON -m pip install --no-deps . -vv"
 requirements:
-     build: 
-         - pytest
      run:
          - numpy >=1.13.3
          - scipy
@@ -39,5 +37,6 @@ build:
 test:
   requirements:
           - pytest
-
+  script: 
+        - $PYTHON setup.py test
 
