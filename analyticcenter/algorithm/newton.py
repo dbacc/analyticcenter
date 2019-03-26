@@ -326,7 +326,6 @@ class NewtonDirectionMultipleDimensionsDT(NewtonDirectionMultipleDimensions):
         self.logger.debug("Reshaped Delta:\n{}".format(Delta))
         self.condition = np.linalg.cond(lhs)
         # check if indeed solution:
-        # ipdb.set_trace()
         if self.debug:
             self._check(A, S, Delta)
         return Delta

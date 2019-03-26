@@ -12,7 +12,6 @@
 import numpy as np
 from scipy import linalg
 import logging
-import ipdb
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,12 @@
 ##
 ## Copyright (c) 2019
-## 
+##
 ## @author: Daniel Bankmann
 ## @company: Technische Universität Berlin
-## 
+##
 ## This file is part of the python package analyticcenter
 ## (see https://gitlab.tu-berlin.de/PassivityRadius/analyticcenter/)
-## 
+##
 ## License: 3-clause BSD, see https://opensource.org/licenses/BSD-3-Clause
 ##
 import numpy as np
@@ -77,8 +77,6 @@ def generate_random_sys_and_save_3(m, n):
         # ss.B = 1/10 * ss.B
         ss.C = 1/10 * ss.C
         sys = WeightedSystem(ss.A, ss.B, ss.C, ss.D, np.zeros((n, n)), ss.C.H, R)
-        import ipdb
-        ipdb.set_trace()
         X = control.care(ss.A, ss.B, np.zeros((n,n)), R, ss.C.H, np.identity(n))[0]
 
         alg = get_algorithm_object(sys, 10 ** (-3))
