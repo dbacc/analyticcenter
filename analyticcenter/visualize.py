@@ -43,7 +43,7 @@ def log_log_direction(X, det, k_last=6):
     # plt.xscale('log')
     plt.xlabel('n')
 
-    plt.plot(X_diff, label=r'$\|\|X-X_c\|\|/ \|\|X_x\|\|$')
+    plt.plot(X_diff, label=r'$\|\|X-X_c\|\|/ \|\|X_c\|\|$')
     # plt.plot(t, np.exp(quadratic_curve_X), label='best quadratic fit')
     plt.legend()
     quadratic_curve = 2*np.linalg.norm(X_diff[0])-t**2
