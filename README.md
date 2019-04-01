@@ -11,7 +11,8 @@ The package can be installed by running
 
 Note that you need at least python version 3.5 to use this software.
 
-Alternatively, you can use the `conda` package.
+Alternatively, you can install the `conda` package by invoking
+`conda install -c dbankmann analyticcenter`
 
 
 
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 * The resulting _analytic center_ object `ac` contains data and methods for analyzing the system at the analytic center.
 
 ### Jupyter notebooks
-There are a few jupyter notebooks showing all the results (and more) that are used in the references below.
+There are a few jupyter notebooks in the examples folder showing all the results (and more) that are used in the references below.
 
 
 
