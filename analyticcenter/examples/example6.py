@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
 
-'''
-This example file is intended to cover all the computations for the computations in the publication
-
-    Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., Analytic Center for the Passivity LMI, 2018
-
-    Beatti, C. ; Mehrmann, V.; van Dooren, P., Analytic Center for the Passivity LMI, 2018
-'''
 
 import logging
 import numpy as np

@@ -1,18 +1,20 @@
 # Analytic Center
 
 This python package is intended to be used for the computation of the analytic center of a strictly passive and stable discrete-time or continuous-time linear time-invariant system.
-One can choose between several solvers (Newton, steepest ascent). Note that this package is a proof-of-concept implementation. There is no guaranty for robustness or optimization of the code.
+One can choose between several solvers (Newton, steepest ascent). Note that this package is research code and a proof-of-concept implementation. There is no guaranty for robustness or optimality of the code.
+Please cite this code, when using for your publication results.
 
 ## Installation
 The package can be installed by running
 
 `python setup.py install`
 
+after fulfilling the requirements listed in `setup.py`.
 
 Note that you need at least python version 3.5 to use this software.
 
 Alternatively, you can install the `conda` package by invoking
-`conda install -c dbankmann analyticcenter`
+`conda install -c conda-forge -c dbankmann analyticcenter`
 
 
 
