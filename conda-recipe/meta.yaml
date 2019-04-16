@@ -35,7 +35,7 @@ test:
                 - $PYTHON setup.py test
 about:
         home: https://gitlab.tubit.tu-berlin.de/PassivityRadius/analyticcenter
-        license:  BSD-3-Clause 
+        license:  BSD 
         license_file: '{{ environ["RECIPE_DIR"] }}/../LICENSE'
         summary: "Python library for computing the analytic center of the passivity LMI in the continuous- and discrete-time setting. See the paper 'Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., 'Computation of the analytic center of the solution set of the linear matrix inequality arising in continuous- and discrete-time passivity analysis, 2019' for more details"
 

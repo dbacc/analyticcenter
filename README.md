@@ -21,7 +21,7 @@ Alternatively, you can install the `conda` package by invoking
 ## Example usage
 ### Simple example
 The following simple example can be found in `examples/example3.py`.
-Run the example with `python3 -O examples/example3.py`. Ommiting the `-O` switch will turn on some debugging information.
+Run the example with `python3 -O examples/example3.py` or with `python3 -O -m analyticcenter.examples.example3`. Ommiting the `-O` switch will turn on some debugging information.
 * First one has to create a system object `sys`:
 
 ```python
