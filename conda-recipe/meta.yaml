@@ -14,33 +14,30 @@ build:
         script:
                 - cd $RECIPE_DIR/..
                 - {{ PYTHON }} -m pip install --no-deps . -vv
-        requirements:
-                host:
-                        - python
-                        - setuptools
-                        - pip
-                run:
-                        - numpy >=1.13.3
-                        - scipy
-                        - control>=0.7.0
-                        - colorlog>=2.10.0
-                        - matplotlib>=2.0.0
-                        - PyYAML>=3.12
-                        - slycot>=0.3.3
 
+requirements:
+        host:
+                - python
+                - setuptools
+                - pip
+        run:
+                - numpy >=1.13.3
+                - scipy
+                - control>=0.7.0
+                - colorlog>=2.10.0
+                - matplotlib>=2.0.0
+                - PyYAML>=3.12
+                - slycot>=0.3.3
+test:
+        requires:
+                - pytest
+                - pytest-runner
+        script: 
+                - $PYTHON setup.py test
 about:
         home: https://gitlab.tubit.tu-berlin.de/PassivityRadius/analyticcenter
         license:  BSD 3 License
-        license_file: '{{ environ["RECIPE_DIR"] }}/LICENSE'
+        license_file: '{{ environ["RECIPE_DIR"] }}/../LICENSE'
         summary: "Python library for computing the analytic center of the passivity LMI in the continuous- and discrete-time setting. See the paper 'Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., 'Computation of the analytic center of the solution set of the linear matrix inequality arising in continuous- and discrete-time passivity analysis, 2019' for more details"
 
-build:
-        number: {{ GIT_DESCRIBE_NUMBER }}
-
-        test:
-                requirements:
-                        - pytest
-                        - pytest-runner
-                script: 
-                        - $PYTHON setup.py test
 
