@@ -23,7 +23,7 @@ _examples_path = join(_base_name, _examples_name)
 
 setup(
     name=_base_name,
-    version='0.2',
+    version='0.2.1',
     description='Computes the Analytic Center of a passive LTI continuous or discrete time system',
     author='Daniel Bankmann',
     author_email='bankmann@math.tu-berlin.de',
