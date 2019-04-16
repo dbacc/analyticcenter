@@ -71,7 +71,7 @@ See the provided license file.
     bankmann@math.tu-berlin.de
 
 ## References
-	Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., Analytic Center for the Passivity LMI, 2019
+	Bankmann, D.; Mehrmann, V.; Nesterov, Y.; van Dooren, P., Computation of the analytic center of the solution set of the linear matrix inequality arising in continuous- and discrete-time passivity analysis, 2019
 
 
 	C. A. Beattie, V. Mehrmann, and P. Van Dooren, “Robust port-Hamiltonian representations of passive systems,” Automatica, vol. 100, pp. 182–186, Feb. 2019.
