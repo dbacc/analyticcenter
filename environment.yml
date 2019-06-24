@@ -1,8 +1,10 @@
 name: analyticcenter
 channels:
   - conda-forge
+  - dbankmann
   - defaults
 dependencies:
+  - analyticcenter=v0.2.1
   - bzip2=1.0.6
   - ca-certificates=2019.6.16
   - certifi=2019.6.16
