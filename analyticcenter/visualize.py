@@ -29,31 +29,28 @@ def log_plot_eigenvalues(alg_object, n=100):
     plt.show()
 
 
-def log_log_direction(X, det, k_last=0):
+def log_log_direction(X, det, X_final=None, det_final=None):
     X = np.array(X)
     det = np.array(det)
-    X_final = X[-1]
-    det_final = det[-1]
+    if X_final is None:
+        X_final = X[-1]
+    if det_final is None:
+        det_final = det[-1]
     X_diff = np.linalg.norm( (X - X_final) / X_final, axis=(1,2))[:-1]
     det_diff = np.abs(det - det_final) / det_final
     t = np.arange(len(det_diff))
-    t = t.astype('float')[-k_last:]
+    t = t.astype('float')
     plt.figure()
     plt.yscale('log')
-    # plt.xscale('log')
     plt.xlabel('k')
 
     plt.plot(X_diff, label=r'$\|\|X-X_c\|\|/ \|\|X_c\|\|$')
-    # plt.plot(t, np.exp(quadratic_curve_X), label='best quadratic fit')
     plt.legend()
-    quadratic_curve = 2*np.linalg.norm(X_diff[0])-t**2
     plt.savefig('figure1.pdf')
     plt.figure()
     plt.yscale('log')
-    # plt.xscale('log')
     plt.xlabel('k')
     plt.plot(det_diff, label=r'$\|det(W(X))-det(W(X_c))\|/ det(W(X_c))$')
-    # plt.plot(t, np.exp(quadratic_curve_det),label='best quadratic fit')
     plt.legend()
     plt.savefig('figure2.pdf')
     plt.show()

@@ -18,7 +18,7 @@ from slycot import ab13fd
 
 class AnalyticCenter(object):
     """Class for storing the final solution X at the analytic center.
-    Contains convenience functions for computing the characteristic values in [].
+    Contains convenience functions for computing the characteristic values in [BeaMV18].
     """
     def __init__(self, X, A_F, HX, algorithm=None, discrete_time=False, delta_cum=None):
         self.algorithm = algorithm
