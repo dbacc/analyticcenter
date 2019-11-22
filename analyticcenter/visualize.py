@@ -36,7 +36,7 @@ def log_log_direction(X, det, X_final=None, det_final=None):
         X_final = X[-1]
     if det_final is None:
         det_final = det[-1]
-    X_diff = np.linalg.norm( (X - X_final) / X_final, axis=(1,2))[:-1]
+    X_diff = np.linalg.norm( (X - X_final) , axis=(1,2))[:-1] /np.linalg.norm(X_final)
     det_diff = np.abs(det - det_final) / det_final
     t = np.arange(len(det_diff))
     t = t.astype('float')
@@ -54,4 +54,14 @@ def log_log_direction(X, det, X_final=None, det_final=None):
     plt.legend()
     plt.savefig('figure2.pdf')
     plt.show()
+
+
+def tabular_data(X, det, X_final=None, det_final=None):
+    interesting_points=(0,99,999) + tuple((i + 1)*1000 -1 for i in range(10))
+    interesting_points= tuple(10**i -1 for i in range(4))
+    tabdata_det = np.abs(np.array(det)- det_final) / np.linalg.norm(det_final)
+    tabdata_X = np.linalg.norm(np.array(X)- X_final, axis=(1,2)) / np.linalg.norm(X_final)
+    return interesting_points, tabdata_det[interesting_points,], tabdata_X[interesting_points,]
+
+
 
