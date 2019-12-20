@@ -1,4 +1,4 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.tu-berlin.de%2FPassivityRadius%2Fanalyticcenter/v0.3.0?filepath=examples%2FPublication_Example-n-30-m-10.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.tu-berlin.de%2FPassivityRadius%2Fanalyticcenter/0.3.0?filepath=examples%2FPublication_Example-n-30-m-10.ipynb)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2643171.svg)](https://doi.org/10.5281/zenodo.2643171)
 [![arXiv](https://img.shields.io/badge/math.CO-arXiv%3A1904.08202-B31B1B.svg)](https://arxiv.org/abs/1904.08202)
 # Analytic Center
