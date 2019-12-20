@@ -15,7 +15,9 @@ import analyticcenter
 from analyticcenter import WeightedSystem, get_algorithm_object
 from analyticcenter import NewtonDirectionMultipleDimensionsCT
 from analyticcenter import SteepestAscentDirectionCT
-sysmat = np.load(join(dirname(__file__), 'example-n-30-m-10.npy'), allow_pickle=True)
+from pkg_resources import resource_filename
+_example_file = resource_filename(__name__, 'example-n-30-m-10.npy')
+sysmat = np.load(_example_file, allow_pickle=True)
 sys = WeightedSystem(*sysmat)
 if __name__=="__main__":
     alg = get_algorithm_object(sys, 'newton', discrete_time=False, save_intermediate=True)
