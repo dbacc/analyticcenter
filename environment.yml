@@ -4,7 +4,7 @@ channels:
   - dbankmann
   - defaults
 dependencies:
-  - analyticcenter
+  - analyticcenter=0.3.0
   - bzip2
   - ca-certificates
   - certifi
