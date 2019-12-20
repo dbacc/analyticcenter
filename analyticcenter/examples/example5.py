@@ -7,7 +7,8 @@ from os.path import join, dirname
 from analyticcenter import WeightedSystem, get_algorithm_object
 from analyticcenter.visualize import log_log_direction
 
-sysmat = np.load(join(dirname(__file__), 'example-n-6-m-3.npy'), allow_pickle=True)
+_example_file = resource_filename(__name__, 'example-n-6-m-3.npy')
+sysmat = np.load(_example_file, allow_pickle=True)
 sys = WeightedSystem(*sysmat)
 
 if __name__ == "__main__":
